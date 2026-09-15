@@ -1625,6 +1625,19 @@ function applyHost(ctx) {
     doLoad().catch(function (e) { console.error('[rtasset] load failed:', msgOf(e)) }).then(function () { loaded = true })
   }, 'rtasset: initial load')
 
+  // 自动研判的心跳必须由 host 自己驱动。客户端 snapshot 轮询只在面板打开时才跑，
+  // 只靠它会变成「关掉面板就永不研判」。timer 是 host Service，其返回值即 disposer。
+  ctx.effect(function () {
+    const t = ctx.get('timer')
+    if (t === undefined || t === null || typeof t.interval !== 'function') {
+      console.error('[rtasset] timer 服务不可用：自动研判将退回只依赖客户端轮询（面板未打开时不会触发）')
+      return
+    }
+    return t.interval(function () {
+      try { maybeAutoReview() } catch (e) {}
+    }, 5000)
+  }, 'rtasset: auto review tick')
+
   console.log('[rtasset] host half ready; base =', JINA_MCP_BASE)
 }
 
