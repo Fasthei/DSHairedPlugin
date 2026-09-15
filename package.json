@@ -1,0 +1,25 @@
+{
+  "name": "dsh-redteam-asset-graph",
+  "version": "7.6.0",
+  "private": true,
+  "description": "DSH 动态 Cordis 插件：红队测试资产图谱（收集 / 关联 / Jina 检索 / 模型研判 / 网状图）",
+  "keywords": [
+    "dsh",
+    "cordis",
+    "redteam",
+    "asset-graph"
+  ],
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "dsh": {
+    "kind": "dynamic-cordis-plugin",
+    "idPrefix": "asset",
+    "hostHalf": "src/host.js",
+    "clientHalf": "src/client.js",
+    "requires": [
+      "Jina API Key（面板 设置 → Jina，必填）"
+    ]
+  }
+}
