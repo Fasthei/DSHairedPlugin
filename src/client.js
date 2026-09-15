@@ -397,6 +397,7 @@ function applyClient(ctx) {
     const runLive = runState === 'searching' || runState === 'judging'
     const runEndedAt = runInfo && runInfo.endedAt ? runInfo.endedAt : 0
     const runElapsed = runInfo && runInfo.startedAt ? Math.max(0, (runEndedAt || Date.now()) - runInfo.startedAt) : 0
+    const candPending = state && state.candidates ? (state.candidates.pending || 0) : 0
     const jinaKey = state && state.settings ? String(state.settings.jinaKey || '').trim() : ''
     const pickedTools = state && state.settings && Array.isArray(state.settings.jinaTools) ? state.settings.jinaTools : []
     const autoModel = !!(state && state.settings && state.settings.autoModel)
@@ -760,6 +761,7 @@ function applyClient(ctx) {
         ' 跟随工作区'),
       React.createElement('span', { className: 'rt-dim' }, shownAssets.length + ' 节点 / ' + shownEdges.length + ' 边'),
       trash.length ? React.createElement('span', { className: 'rt-badge' }, '垃圾箱 ' + trash.length) : null,
+      candPending ? React.createElement('span', { className: 'rt-badge' }, '待研判候选 ' + candPending) : null,
       runLive ? React.createElement('span', { className: 'rt-badge rt-badge-warn' }, runState === 'searching' ? '检索中…' : '研判中…') : null,
       jinaReady
         ? React.createElement('span', { className: 'rt-badge rt-badge-ok' }, 'Jina ✓ ' + pickedTools.length + ' 工具')
@@ -1054,9 +1056,9 @@ function applyClient(ctx) {
       setEls.push(React.createElement('div', { key: 'h3', className: 'rt-h' }, '采集'))
       setEls.push(React.createElement('label', { key: 'c1', className: 'rt-note' },
         React.createElement('input', { type: 'checkbox', checked: !!state.settings.autoCapture, onChange: function (e) { commitSettings({ autoCapture: e.target.checked }) } }),
-        ' 自动从工具结果捕获资产（模型自己搜索出的域名会被当成目标资产，建议保持关闭）'))
+        ' 自动从工具输出攒候选（不直接入库；由模型自动研判后决定收哪些）'))
       setEls.push(React.createElement('div', { key: 'c2', className: 'rt-note' },
-        '「关联分析」现在不会直接入库：阶段 1 只产出候选，由阶段 2 的模型决定登记哪些。内网段（10/8、172.16/12、192.168/16）正常收录，已跳过保留/代理地址段'))
+        '两条入口统一为「先候选、后研判」：关联分析阶段 1 产出检索候选，这个开关产出工具捕获候选，两者都交给模型自动研判，无关的不登记。攒到 6 条、或安静 45 秒后自动触发；内网段（10/8、172.16/12、192.168/16）正常收录，已跳过保留/代理地址段'))
     }
 
     const body = React.createElement('div', { className: 'rt-body' }, left, center,

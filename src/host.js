@@ -4,7 +4,7 @@ const TLD_OK = ['com','net','org','edu','gov','mil','int','info','biz','name','p
 const JS_NOISE = ['message','push','slice','splice','replace','tolowercase','touppercase','indexof','lastindexof','length','foreach','filter','reduce','concat','split','join','trim','test','match','exec','search','keys','values','entries','assign','freeze','create','defineproperty','getownpropertynames','hasownproperty','prototype','constructor','tostring','valueof','then','catch','finally','resolve','reject','apply','call','bind','now','random','floor','ceil','round','parse','stringify','max','min','sort','reverse','pop','shift','unshift','includes','startswith','endswith','padstart','padend','repeat','charat','charcodeat','substring','substr','localecompare','isarray','from','of','map','set','get','has','add','delete','clear','size','name','type','value','data','props','state','args','opts','config','options','result','error','err','json','text','body','head','item','items','list','node','nodes','edge','edges','id','ids','key','path','paths','file','files','dir','url','host','port','user','pass','token','code','line','lines','row','rows','col','cols','width','height','left','right','top','bottom','style','classname','children','parent','first','last','next','prev','count','total','index','offset','limit','start','end','before','after','obj','req','res','ctx','self','this']
 const JINA_MCP_BASE = 'https://mcp.jina.ai/v1'
 const DEFAULT_TOOLS = ['search_web', 'search_web_deep', 'read_url', 'parallel_read_url']
-const STORE_VERSION = 14
+const STORE_VERSION = 15
 const RULES_FILE = '.redteam-asset-graph.rules.md'
 
 function msgOf(e) { return e && e.message ? String(e.message) : String(e) }
@@ -266,7 +266,7 @@ function isTrashEntry(t) { return !!t && typeof t === 'object' && !!t.asset && t
 function blankStore() {
   return {
     version: STORE_VERSION, updatedAt: 0, projects: [], junkPurged: false,
-    assets: [], edges: [], trash: [], log: [], logSeq: 0, toolCatalog: [],
+    assets: [], edges: [], trash: [], log: [], logSeq: 0, toolCatalog: [], candidates: [],
     settings: {
       jinaKey: '', jinaTools: DEFAULT_TOOLS.slice(), autoModel: true, autoCapture: false,
       followWorkspace: true, storePath: '.redteam-assets.json', activeProjectId: ''
@@ -577,9 +577,11 @@ function applyHost(ctx) {
     }
   }
 
-  function buildEnrichPrompt(project, pool, candidates, rules) {
+  function buildEnrichPrompt(project, pool, candidates, rules, source) {
     const L = []
-    L.push('第一阶段（Jina 检索）已完成。检索只产出候选，**没有写入图谱**。')
+    L.push(source === 'capture'
+      ? '以下候选来自**工具输出的自动捕获**（不是 Jina 检索），只在待研判池里，**没有写入图谱**。'
+      : '第一阶段（Jina 检索）已完成。检索只产出候选，**没有写入图谱**。')
     L.push('')
     L.push('已知资产（图谱现有 ' + pool.length + ' 个）：')
     for (const a of pool.slice(0, 60)) L.push('- [' + a.type + '] ' + a.value)
@@ -587,7 +589,7 @@ function applyHost(ctx) {
     L.push('')
     if (candidates.length) {
       L.push('检索候选（' + candidates.length + ' 个，均未入库）：')
-      for (const c of candidates.slice(0, 120)) L.push('- [' + c.type + '] ' + c.value + '（来自对 ' + c.from + ' 的检索）')
+      for (const c of candidates.slice(0, 120)) L.push('- [' + c.type + '] ' + c.value + (source === 'capture' ? '（来自 ' + c.from + ' 输出）' : '（来自对 ' + c.from + ' 的检索）'))
       if (candidates.length > 120) L.push('- …其余 ' + (candidates.length - 120) + ' 个')
     } else {
       L.push('检索候选：无。')
@@ -638,7 +640,7 @@ function applyHost(ctx) {
     } catch (e) { return fallback }
   }
 
-  async function handoffToModel(project, candidates) {
+  async function handoffToModel(project, candidates, source) {
     const pool = project ? store.assets.filter(function (a) { return a.projectId === project.id }) : []
     if (pool.length === 0) { log('warn', '无可研判资产，跳过模型阶段'); return false }
     const agent = findAgent()
@@ -649,7 +651,7 @@ function applyHost(ctx) {
     }
     const rules = await enrichRules()
     log('info', '研判规则来源：' + (rules.source === 'builtin' ? '内置默认' : rules.source))
-    const text = buildEnrichPrompt(project, pool, candidates, rules.text)
+    const text = buildEnrichPrompt(project, pool, candidates, rules.text, source)
     const base = { id: 'rt-' + nowMs().toString(36) + '-' + Math.random().toString(36).slice(2, 8), role: 'user', content: [{ type: 'text', text: text }] }
     startLive()
     try {
@@ -676,6 +678,7 @@ function applyHost(ctx) {
     const now = nowMs()
     const wanted = raw.projectId ? String(raw.projectId) : effectiveProjectId()
     const projectId = wanted && findProject(wanted) ? wanted : (store.settings.activeProjectId || null)
+    dropCandidate(type, value)
     const existing = findAssetByValue(type, value)
     if (existing) {
       if (raw.note) existing.note = (existing.note ? existing.note + '\n' : '') + String(raw.note).slice(0, 4000)
@@ -789,21 +792,73 @@ function applyHost(ctx) {
     return { ok: true, created: autoAfter, removed: Math.max(0, autoBefore - autoAfter), total: store.edges.length }
   }
 
-  function autoImport(list, source) {
+  function dropCandidate(type, value) {
+    for (let i = store.candidates.length - 1; i >= 0; i--) {
+      const k = store.candidates[i]
+      if (k.type === type && k.value === value) store.candidates.splice(i, 1)
+    }
+  }
+
+  function collectCandidates(list, source) {
     if (!store.settings.autoCapture) return 0
     let added = 0, skipped = 0
     for (const c of list) {
       if (!validAssetValue(c.type, c.value)) continue
       if (c.type === 'ip' && isNonTargetIp(c.value)) { skipped++; continue }
       if (findAssetByValue(c.type, c.value)) continue
-      const r = addAsset({ type: c.type, value: c.value, source: source || 'auto', confidence: 30 })
-      if (r.ok && r.created) added++
+      let hit = null
+      for (const k of store.candidates) if (k.type === c.type && k.value === c.value) { hit = k; break }
+      if (hit) { hit.hits = (hit.hits || 1) + 1; continue }
+      store.candidates.push({ type: c.type, value: c.value, from: String(source || 'auto').slice(0, 40), at: nowMs(), hits: 1, sentAt: 0 })
+      added++
     }
+    if (store.candidates.length > 300) store.candidates = store.candidates.slice(store.candidates.length - 300)
     if (skipped > 0 && !noiseNoticeLogged) {
       noiseNoticeLogged = true
       log('info', '已跳过 ' + skipped + ' 个保留/代理地址（127/169.254/198.18-19/组播），内网段仍正常收录')
     }
     return added
+  }
+
+  let lastCandAt = 0
+  let reviewInFlight = false
+  const REVIEW_MIN = 6
+  const REVIEW_IDLE_MS = 45000
+
+  function pendingCandidates() {
+    const out = []
+    for (const k of store.candidates) if (!k.sentAt) out.push(k)
+    return out
+  }
+
+  function maybeAutoReview() {
+    if (reviewInFlight || liveActive) return
+    if (!store.settings.autoCapture || !store.settings.autoModel) return
+    if (runActive()) return
+    const pending = pendingCandidates()
+    if (pending.length === 0) return
+    const quiet = lastCandAt > 0 && (nowMs() - lastCandAt > REVIEW_IDLE_MS)
+    if (pending.length < REVIEW_MIN && !quiet) return
+    const project = findProject(effectiveProjectId()) || store.projects[0] || null
+    if (!project) return
+    reviewInFlight = true
+    autoReview(project, pending).catch(function (e) {
+      reviewInFlight = false
+      logFailure('自动研判候选异常', e, 'autoReview')
+    })
+  }
+
+  async function autoReview(project, pending) {
+    const list = pending.map(function (k) { return { type: k.type, value: k.value, from: k.from } })
+    for (const k of pending) k.sentAt = nowMs()
+    touch()
+    await persist()
+    log('phase', '自动研判候选（' + list.length + ' 个，来自工具输出捕获，不写图谱）')
+    setRun('judging', '模型研判候选（' + list.length + ' 个）')
+    const ok = await handoffToModel(project, list, 'capture')
+    if (!ok) setRun('error', '模型研判未启动，候选仍留在待研判池')
+    reviewInFlight = false
+    await persist()
   }
 
   async function resolveTarget() {
@@ -828,6 +883,7 @@ function applyHost(ctx) {
         if (Array.isArray(parsed.trash)) store.trash = parsed.trash.filter(isTrashEntry)
         if (Array.isArray(parsed.log)) store.log = parsed.log
         if (Array.isArray(parsed.toolCatalog)) store.toolCatalog = parsed.toolCatalog
+        if (Array.isArray(parsed.candidates)) store.candidates = parsed.candidates
         if (typeof parsed.logSeq === 'number') store.logSeq = parsed.logSeq
         if (parsed.settings && typeof parsed.settings === 'object') {
           for (const k of Object.keys(store.settings)) if (parsed.settings[k] !== undefined) store.settings[k] = parsed.settings[k]
@@ -860,6 +916,7 @@ function applyHost(ctx) {
         assets: store.assets, edges: store.edges,
         trash: store.trash.filter(isTrashEntry), log: store.log.slice(-100), logSeq: store.logSeq,
         toolCatalog: store.toolCatalog,
+        candidates: store.candidates.slice(-300),
         settings: store.settings, meta: { captured: store.meta.captured }
       }
       await r.fs.writeText(r.target, JSON.stringify(payload, null, 2))
@@ -988,6 +1045,7 @@ function applyHost(ctx) {
 
   function snapshot() {
     if (syncWorkspaces() > 0) persist()
+    try { maybeAutoReview() } catch (e) {}
     if (liveActive && liveLastFrameAt && nowMs() - liveLastFrameAt > 30000) {
       log('warn', '模型流静默超过 30 秒，判定研判结束')
       finishLive()
@@ -1012,6 +1070,7 @@ function applyHost(ctx) {
       jinaUrl: mcpUrl(),
       jinaReady: jinaKey().length > 0,
       settings: store.settings,
+      candidates: { pending: pendingCandidates().length, total: store.candidates.length },
       meta: store.meta,
       stats: { typeCounts: byType, autoEdges: store.edges.filter(function (e) { return e.source === 'auto' }).length }
     }
@@ -1389,8 +1448,8 @@ function applyHost(ctx) {
       if (text.length < 8) return
       const found = extract(text, 60, name || 'tool')
       if (found.length === 0) return
-      const added = autoImport(found, name || 'auto')
-      if (added > 0) { store.meta.captured += added; persist() }
+      const added = collectCandidates(found, name || 'auto')
+      if (added > 0) { store.meta.captured += added; lastCandAt = nowMs(); persist() }
     } catch (e) { console.error('[rtasset] capture failed:', msgOf(e)) }
   })
 
