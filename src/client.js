@@ -925,7 +925,7 @@ function applyClient(ctx) {
         React.createElement('div', { style: { padding: 12, overflow: 'auto', flex: 1 } },
           React.createElement('table', { className: 'rt-table' },
             React.createElement('thead', null, React.createElement('tr', null,
-              ['类型', '值', '来源', '置信度', '命中', '项目', '首次发现', '备注'].map(function (h) {
+              ['类型', '值', '来源', '置信度', '命中', '项目', '首次发现', '备注', ''].map(function (h) {
                 return React.createElement('th', { key: h }, h)
               }))),
             React.createElement('tbody', null, filtered.map(function (a) {
@@ -937,7 +937,13 @@ function applyClient(ctx) {
                 React.createElement('td', null, a.hits || 1),
                 React.createElement('td', null, (projects.filter(function (p) { return p.id === a.projectId })[0] || {}).name || '-'),
                 React.createElement('td', { className: 'rt-dim' }, fmtTime(a.createdAt)),
-                React.createElement('td', { className: 'rt-dim' }, String(a.note || '').slice(0, 60)))
+                React.createElement('td', { className: 'rt-dim' }, String(a.note || '').slice(0, 60)),
+                React.createElement('td', { style: { whiteSpace: 'nowrap' } },
+                  React.createElement('button', {
+                    className: 'rt-btn rt-danger', disabled: !!busy,
+                    title: '将「' + a.value + '」移入垃圾箱（可恢复）',
+                    onClick: function (ev) { ev.stopPropagation(); doTrash('delete', [a.id]) }
+                  }, '删除')))
             })))),
         detailCard)
     } else {

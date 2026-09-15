@@ -3,6 +3,7 @@
 在 [DSH](https://www.npmjs.com/package/@deepseek-ai/dsh) 里做红队测试时，把目标资产**自动收集、关联、可视化**，并让模型参与研判。
 
 - **面板**：左侧一级菜单「资产图谱」—— 网状图 / 列表 / 垃圾箱三视图
+- **删除**：列表每行可单独删除；删除一律进垃圾箱（可恢复），并写入图谱日志的审计链
 - **模型工具**：`asset_record`（登记）、`asset_query`（查询）、`asset_remove`（剔除误报）
 - **检索**：Jina MCP 直连，按需勾选工具（`include_tools` 限定，减少上下文占用）
 - **关联分析**：两阶段 —— 阶段 1 用 Jina 检索**只产出候选**，阶段 2 交模型研判决定入库哪些
@@ -135,7 +136,7 @@ NODE_OPTIONS=--max-old-space-size=4096 dsh web
 
 ## 版本
 
-当前 `7.9.0`。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
+当前 `7.9.1`。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
 
 ## 许可
 

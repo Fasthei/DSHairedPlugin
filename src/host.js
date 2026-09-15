@@ -1191,6 +1191,12 @@ function applyHost(ctx) {
       } else {
         return { ok: false, error: '未知的垃圾箱操作：' + action, snapshot: safeSnapshot() }
       }
+      if (n > 0) {
+        if (action === 'delete') log('warn', '手动删除 ' + n + ' 个资产（移入垃圾箱，可恢复）')
+        else if (action === 'restore') log('info', '从垃圾箱恢复 ' + n + ' 个资产')
+        else if (action === 'purge') log('warn', '彻底删除 ' + n + ' 个资产（不可恢复）')
+        else if (action === 'clear') log('warn', '清空垃圾箱：' + n + ' 个资产被彻底删除（不可恢复）')
+      }
       touch()
       await persist()
       return { ok: true, changed: n, snapshot: safeSnapshot() }
