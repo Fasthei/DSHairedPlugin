@@ -136,9 +136,19 @@ NODE_OPTIONS=--max-old-space-size=4096 dsh web
 
 ---
 
+## 测试
+
+```bash
+npm test        # 或 node test/render-smoke.mjs
+```
+
+`test/render-smoke.mjs` 是 **Client 半边的渲染冒烟测试**。存在的理由很具体：Client 半边只过 `node --check` 是不够的 —— 语法完全合法的代码仍可能在运行期崩溃。真实案例：`assocInfo` 是函数声明（会提升），却在它依赖的 `const EV_PLACEHOLDER` 初始化之前被调用，抛 `Cannot access 'EV_PLACEHOLDER' before initialization`（TDZ）。这类错误只在「选中一个带边的资产」时才触发，恰好绕过所有静态检查。
+
+测试用桩件实现 `React.useState/useMemo/useRef/createElement` 等，把 `selected` 指向一个真实带边的资产，然后调用 `Panel()` 走完整渲染路径。数据源优先用 `~/.redteam-assets.json`，不存在时退回内置小样本。
+
 ## 版本
 
-当前 `7.9.3`。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
+当前 `7.9.4`。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
 
 ## 许可
 

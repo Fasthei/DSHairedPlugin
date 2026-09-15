@@ -637,6 +637,16 @@ function applyClient(ctx) {
       return commitSettings({ jinaKey: k })
     }
 
+    const EV_PLACEHOLDER = { model: 1, import: 1, relay: 1, auto: 1, manual: 1, user: 1 }
+    function clip(s) { const t = String(s || '').trim(); return t.length > 118 ? t.slice(0, 117) + '…' : t }
+    function noteFirstLine(a) {
+      const raw = String(a && a.note || '')
+      for (const line of raw.split('\n')) {
+        const t = line.trim()
+        if (t) return clip(t)
+      }
+      return ''
+    }
     const filtered = shownAssets.filter(function (a) {
       if (!filter.trim()) return true
       const q = filter.trim().toLowerCase()
@@ -658,16 +668,6 @@ function applyClient(ctx) {
       const src = String(e && e.source || 'auto')
       if (src === 'manual') return '人工指定'
       if (src === 'import') return '随导入带入'
-      return ''
-    }
-    const EV_PLACEHOLDER = { model: 1, import: 1, relay: 1, auto: 1, manual: 1, user: 1 }
-    function clip(s) { const t = String(s || '').trim(); return t.length > 118 ? t.slice(0, 117) + '…' : t }
-    function noteFirstLine(a) {
-      const raw = String(a && a.note || '')
-      for (const line of raw.split('\n')) {
-        const t = line.trim()
-        if (t) return clip(t)
-      }
       return ''
     }
     function assocInfo(a, list) {

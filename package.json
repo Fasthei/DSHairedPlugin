@@ -1,6 +1,6 @@
 {
   "name": "dsh-redteam-asset-graph",
-  "version": "7.9.3",
+  "version": "7.9.4",
   "private": true,
   "license": "MIT",
   "description": "DSH 动态 Cordis 插件：红队测试资产图谱（收集 / 关联 / Jina 检索 / 模型研判 / 网状图）",
@@ -12,6 +12,7 @@
   ],
   "files": [
     "src",
+    "test",
     "README.md",
     "LICENSE"
   ],
@@ -23,5 +24,8 @@
     "requires": [
       "Jina API Key（面板 设置 → Jina，必填）"
     ]
+  },
+  "scripts": {
+    "test": "node test/render-smoke.mjs"
   }
 }
