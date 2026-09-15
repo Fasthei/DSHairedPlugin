@@ -1062,9 +1062,9 @@ function applyClient(ctx) {
       setEls.push(React.createElement('div', { key: 'h3', className: 'rt-h' }, '采集'))
       setEls.push(React.createElement('label', { key: 'c1', className: 'rt-note' },
         React.createElement('input', { type: 'checkbox', checked: !!state.settings.autoCapture, onChange: function (e) { commitSettings({ autoCapture: e.target.checked }) } }),
-        ' 自动从工具输出攒候选（不直接入库；由模型自动研判后决定收哪些）'))
+        ' 只从外部情报工具（web_search / Jina 检索）攒候选，跳过 bash 与本地读文件；不直接入库，由模型自动研判后决定收哪些'))
       setEls.push(React.createElement('div', { key: 'c2', className: 'rt-note' },
-        '两条入口统一为「先候选、后研判」：关联分析阶段 1 产出检索候选，这个开关产出工具捕获候选，两者都交给模型自动研判，无关的不登记。攒到 6 条、或安静 45 秒后自动触发；内网段（10/8、172.16/12、192.168/16）正常收录，已跳过保留/代理地址段'))
+        '两条入口统一为「先候选、后研判」：关联分析阶段 1 产出检索候选，这个开关产出情报工具候选，两者都交给模型自动研判，无关的不登记。攒到 6 条、或安静 45 秒后由 host 每 5 秒的心跳自动触发；内网段（10/8、172.16/12、192.168/16）正常收录，已跳过保留/代理地址段'))
     }
 
     const body = React.createElement('div', { className: 'rt-body' }, left, center,

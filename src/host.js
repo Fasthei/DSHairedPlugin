@@ -89,6 +89,15 @@ function validAssetValue(type, value) {
   return true
 }
 
+const INTEL_TOOLS = ['web_search', 'web_fetch', 'search_web', 'search_web_deep', 'read_url', 'parallel_read_url', 'search_arxiv', 'search_ssrn', 'search_jina_blog', 'search_images', 'search_bibtex', 'capture_screenshot_url']
+function isIntelTool(name) {
+  if (!name) return false
+  if (INTEL_TOOLS.indexOf(name) >= 0) return true
+  if (name.indexOf('search_') === 0) return true
+  if (name.indexOf('web_') === 0) return true
+  return false
+}
+
 const CAPTURE_SKIP = ['asset_record','asset_query','asset_remove','cordis_define','cordis_run','cordis_stop','cordis_undefine','cordis_inspect_list','cordis_inspect_query','cordis_inspect_self','skill','todo_write','ask_user_question','job_list','job_output','job_kill','present','exit_plan_mode','write','edit']
 
 function extract(text, limit, evidenceSource) {
@@ -1447,6 +1456,10 @@ function applyHost(ctx) {
         return
       }
       if (CAPTURE_SKIP.indexOf(name) >= 0) return
+      // 只从外部情报工具捕获。bash / read / grep 等本地工具的返回里同样会出现域名
+      // 与哈希（实测：git commit SHA 被当成 hash 资产、relay.ok 被当成域名、
+      // 我自己诊断输出的截断串被当成 URL），那不是目标情报而是工作噪声。
+      if (!isIntelTool(name)) return
       const blocks = result ? result.content : null
       if (!Array.isArray(blocks)) return
       let text = ''
