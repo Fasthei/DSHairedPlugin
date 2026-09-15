@@ -274,7 +274,7 @@ function isTrashEntry(t) { return !!t && typeof t === 'object' && !!t.asset && t
 
 function blankStore() {
   return {
-    version: STORE_VERSION, updatedAt: 0, projects: [], junkPurged: false,
+    version: STORE_VERSION, updatedAt: 0, projects: [],
     assets: [], edges: [], trash: [], log: [], logSeq: 0, toolCatalog: [], candidates: [],
     settings: {
       jinaKey: '', jinaTools: DEFAULT_TOOLS.slice(), autoModel: true, autoCapture: false,
@@ -345,12 +345,19 @@ function applyHost(ctx) {
   function finishLive() {
     if (!liveActive) return
     liveActive = false
+    const judged = live.reasoning.length > 0 || live.text.length > 0 || live.tools.length > 0
     if (live.reasoning) logBlock('think', live.reasoning)
     if (live.text) logBlock('model', live.text)
     live = { reasoning: '', text: '', tools: [] }
     liveLastFrameAt = 0
     if (runActive()) {
-      log('ok', '模型研判结束')
+      if (judged) {
+        const n = settleCandidates()
+        log('ok', '模型研判结束' + (n > 0 ? '：' + n + ' 条候选未获采纳，已出待研判池（排除理由见推理）' : ''))
+      } else {
+        const r = requeueCandidates()
+        log('warn', '模型研判未产生输出：' + r.requeued + ' 条候选退回待研判' + (r.dropped > 0 ? '，' + r.dropped + ' 条重推 ' + REQUEUE_MAX + ' 次未果已出池' : ''))
+      }
       setRun('done', '模型研判结束')
     }
     touch()
@@ -458,32 +465,6 @@ function applyHost(ctx) {
       logFailure('syncWorkspaces 失败', e, '项目同步')
       return 0
     }
-  }
-
-  function purgeJunkOnce() {
-    if (store.junkPurged) return 0
-    store.junkPurged = true
-    const keep = []
-    const doomed = {}
-    for (const a of store.assets) {
-      const src = Array.isArray(a.sources) ? a.sources : []
-      const junk = src.length === 1 && (src[0] === 'bash' || src[0] === 'web_search')
-      if (junk) doomed[a.id] = true
-      else keep.push(a)
-    }
-    const n = Object.keys(doomed).length
-    if (n === 0) return 0
-    for (const a of store.assets) {
-      if (doomed[a.id]) store.trash.push({ id: a.id, asset: a, deletedAt: nowMs() })
-    }
-    if (store.trash.length > 2000) store.trash = store.trash.slice(store.trash.length - 2000)
-    store.assets = keep
-    const alive = {}
-    for (const a of store.assets) alive[a.id] = true
-    store.edges = store.edges.filter(function (e) { return alive[e.from] && alive[e.to] })
-    log('warn', '一次性清理：' + n + ' 个自动捕获产生的噪声资产已移入垃圾箱（可在垃圾箱恢复）')
-    touch()
-    return n
   }
 
   function effectiveProjectId() {
@@ -833,11 +814,44 @@ function applyHost(ctx) {
   let reviewInFlight = false
   const REVIEW_MIN = 6
   const REVIEW_IDLE_MS = 45000
+  const REQUEUE_MAX = 3
 
   function pendingCandidates() {
     const out = []
     for (const k of store.candidates) if (!k.sentAt) out.push(k)
     return out
+  }
+
+  // 已研判：本轮送出、且没有被 asset_record 采纳的候选一律出池。
+  // 规则里「确认无关 → 不调用任何工具，理由写在推理里」是设计如此，所以排除动作在候选池这一侧收口，
+  // 否则被排除的候选会永远留在池子里：sentAt 已置位，pendingCandidates() 再也看不到它们。
+  function settleCandidates() {
+    if (!store.candidates.length) return 0
+    const keep = []
+    let n = 0
+    for (const k of store.candidates) {
+      if (k.sentAt) { n++; continue }
+      keep.push(k)
+    }
+    if (n > 0) store.candidates = keep
+    return n
+  }
+
+  // 未研判：模型这一轮没留下任何推理/输出，说明研判请求没被接手，候选退回待研判。
+  // 重推 REQUEUE_MAX 次仍无果的直接出池，避免「退回 → 重推 → 再退回」空转。
+  function requeueCandidates() {
+    const keep = []
+    let requeued = 0, dropped = 0
+    for (const k of store.candidates) {
+      if (!k.sentAt) { keep.push(k); continue }
+      k.tries = (k.tries || 0) + 1
+      if (k.tries >= REQUEUE_MAX) { dropped++; continue }
+      k.sentAt = 0
+      requeued++
+      keep.push(k)
+    }
+    store.candidates = keep
+    return { requeued: requeued, dropped: dropped }
   }
 
   function maybeAutoReview() {
@@ -886,7 +900,6 @@ function applyHost(ctx) {
       const parsed = info ? JSON.parse(await r.fs.readText(r.target)) : null
       if (parsed && typeof parsed === 'object') {
         if (Array.isArray(parsed.projects)) store.projects = parsed.projects
-        if (parsed.junkPurged === true) store.junkPurged = true
         if (Array.isArray(parsed.assets)) store.assets = parsed.assets
         if (Array.isArray(parsed.edges)) store.edges = parsed.edges
         if (Array.isArray(parsed.trash)) store.trash = parsed.trash.filter(isTrashEntry)
@@ -902,7 +915,8 @@ function applyHost(ctx) {
       }
       store.meta.persistence = 'ready'
       let changed = ensureProjects()
-      changed += purgeJunkOnce()
+      const staleSent = settleCandidates()
+      if (staleSent > 0) { log('info', '候选池清理：' + staleSent + ' 条上一轮已研判的候选出池'); changed++ }
       if (changed > 0) analyze()
       const stale = !parsed || parsed.version !== STORE_VERSION
       if (changed > 0 || stale) await doWrite()
@@ -921,7 +935,7 @@ function applyHost(ctx) {
       if (!r) { store.meta.persistence = 'memory'; return }
       const payload = {
         version: STORE_VERSION, updatedAt: store.updatedAt,
-        projects: store.projects, junkPurged: store.junkPurged,
+        projects: store.projects,
         assets: store.assets, edges: store.edges,
         trash: store.trash.filter(isTrashEntry), log: store.log.slice(-100), logSeq: store.logSeq,
         toolCatalog: store.toolCatalog,

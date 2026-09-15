@@ -148,7 +148,11 @@ npm test        # 或 node test/render-smoke.mjs
 
 ## 版本
 
-当前 `7.9.4`。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
+**运行中 `7.9.4`（pkg-5，run-6）**。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
+
+`main` 上另有一版 **已就绪但未装载的 `7.9.5`**：候选池结算（研判结束后，把本轮送出、且未被 `asset_record` 采纳的候选出池；模型这一轮若没有任何推理/输出，则把候选退回待研判，重推上限 3 次以防空转），外加删除 `purgeJunkOnce()` 死代码。
+
+它已通过 `node --check` 与渲染冒烟测试，但**没有**通过 `cordis_define` 装载：装载要再发一次 host+client 全量（约 155KB），决定随「常驻插件包 + agent preset」移植一起上。所以在移植完成前，**`src/host.js` 的当前内容不等于运行中的 pkg-5** —— 以 git log 和实际装载记录为准。
 
 ## 许可
 
