@@ -748,8 +748,6 @@ function applyHost(ctx) {
     return hn.length > sfx.length && hn.slice(hn.length - sfx.length) === sfx
   }
 
-  const NO_EDGE_TAG = /^(待验证|误报|无旁证|高危|低危|中危|已验证|勿动|重要|生产|测试)$/
-
   function analyzePool(pool) {
     const domains = pool.filter(function (a) { return a.type === 'domain' })
     const ips = pool.filter(function (a) { return a.type === 'ip' })
@@ -776,16 +774,6 @@ function applyHost(ctx) {
       const at = ml.value.split('@')[1]
       if (!at) continue
       for (const d of domains) if (d.value === at) addEdgeRaw(ml.id, d.id, 'mailbox_at', 2, 'auto', at)
-    }
-    for (let i = 0; i < pool.length; i++) {
-      const a = pool[i]
-      const tags = (Array.isArray(a.tags) ? a.tags : []).filter(function (t) { return t && !NO_EDGE_TAG.test(t) && t.indexOf('shares_tag') !== 0 })
-      if (tags.length === 0) continue
-      for (let j = i + 1; j < pool.length; j++) {
-        const b = pool[j]
-        const bt = Array.isArray(b.tags) ? b.tags : []
-        for (const t of tags) if (bt.indexOf(t) >= 0) { addEdgeRaw(a.id, b.id, 'shares_tag:' + t, 1, 'auto', t); break }
-      }
     }
   }
 

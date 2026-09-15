@@ -80,7 +80,12 @@ NODE_OPTIONS=--max-old-space-size=4096 dsh web
 
 面板「关联分析」下方常驻一行状态：`未运行 / 运行中（检索中·研判中，带已用时间）/ 已完成（带耗时与结束时刻）/ 已停止 / 分析失败`。运行期间该按钮变「停止」，此时重复点击会被拒绝。
 
-图谱中的关系边由本地结构化规则生成：`belongs_to`、`subdomain_of`、`in_range`、`mailbox_at`、`shares_tag:*`，外加模型/人工显式指定的 `relay + relation`。**不会**从备注文本里做子串匹配建边。
+图谱中的关系边只来自两类来源：
+
+1. **本地结构化规则** —— `belongs_to`（URL→域名）、`hosts_on`（URL→IP）、`exposes_port`、`subdomain_of`、`in_range`（IP 落网段）、`mailbox_at`（邮箱→域）
+2. **显式指定** —— 模型或人工在 `asset_record` 里传 `relay + relation`
+
+**不会**从备注文本做子串匹配建边，也**不会**因为两个资产共享某个标签就两两建边。这两类规则都被刻意移除了：它们是平方级噪声源，实测一个语义标签曾在 8 个资产间炸出 35 条边、占全图 78%。
 
 ---
 
@@ -104,7 +109,7 @@ NODE_OPTIONS=--max-old-space-size=4096 dsh web
 
 ## 版本
 
-当前 `7.6.0`。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
+当前 `7.7.0`。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
 
 ## 许可
 

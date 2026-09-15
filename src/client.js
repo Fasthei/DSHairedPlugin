@@ -52,7 +52,6 @@ const ORIGIN_PHRASE = {
 
 function relLabel(r) {
   const s = String(r || '')
-  if (s.indexOf('shares_tag:') === 0) return '共享标签'
   return RELATION_LABEL[s] || s
 }
 
@@ -61,7 +60,6 @@ function relBasis(e) {
   if (src === 'manual') return '登记时人工指定'
   if (src === 'import') return '随导入数据带入'
   const r = String(e && e.relation || '')
-  if (r.indexOf('shares_tag:') === 0) return '因共享标签「' + r.slice(11) + '」自动判定'
   if (r === 'belongs_to') return '按 URL 主机名归属自动判定'
   if (r === 'subdomain_of') return '按域名后缀自动判定'
   if (r === 'in_range') return '按 IP 是否落在该网段自动判定'
