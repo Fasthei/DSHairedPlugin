@@ -108,4 +108,4 @@ NODE_OPTIONS=--max-old-space-size=4096 dsh web
 
 ## 许可
 
-尚未指定。发布前请补一个 LICENSE。
+[MIT](LICENSE) © 2026 fasthei
