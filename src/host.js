@@ -1281,7 +1281,7 @@ function applyHost(ctx) {
     for (const e of parsed.edges) {
       const f = findAssetByValueLoose(e.fromValue)
       const t = findAssetByValueLoose(e.toValue)
-      if (f && t && addEdgeRaw(f.id, t.id, String(e.relation || 'related'), 2, 'import', 'import')) edgesAdded++
+      if (f && t && addEdgeRaw(f.id, t.id, String(e.relation || 'related'), 2, 'import', '')) edgesAdded++
     }
     analyze()
     log('ok', '导入 ' + format + '：新增 ' + added + '，合并 ' + merged + '，关系 ' + edgesAdded)
@@ -1407,7 +1407,8 @@ function applyHost(ctx) {
         tags: { type: 'array', items: { type: 'string' }, description: '标签，如 生产 / 对外 / 高危' },
         confidence: { type: 'integer', description: '置信度 0-100' },
         relay: { type: 'string', description: '要与之建立关系的另一个资产值（会被自动登记）' },
-        relation: { type: 'string', description: '关系名，如 resolves_to / has_port / belongs_to / admin_of' }
+        relation: { type: 'string', description: '关系名，如 resolves_to / has_port / belongs_to / admin_of' },
+        evidence: { type: 'string', description: '这条关系成立的依据 —— 你看到了什么内容才把它连起来（与 relay 同用时填写，会显示在详情卡片的关联行「依据」上）' }
       },
       required: ['value']
     },
@@ -1425,7 +1426,7 @@ function applyHost(ctx) {
       if (!r.ok) { log('err', '登记失败：' + r.error); await persist(); return { ok: false, error: r.error } }
       if (args.relay) {
         const relay = addAsset({ value: args.relay, source: 'relay' })
-        if (relay.ok) addEdgeRaw(r.asset.id, relay.asset.id, args.relation || 'related', 2, 'manual', 'model')
+        if (relay.ok) addEdgeRaw(r.asset.id, relay.asset.id, args.relation || 'related', 2, 'manual', args.evidence ? String(args.evidence).slice(0, 300) : '')
       }
       analyze()
       touch()

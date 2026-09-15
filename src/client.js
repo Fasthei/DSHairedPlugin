@@ -55,20 +55,6 @@ function relLabel(r) {
   return RELATION_LABEL[s] || s
 }
 
-function relBasis(e) {
-  const src = String(e && e.source || 'auto')
-  if (src === 'manual') return '登记时人工指定'
-  if (src === 'import') return '随导入数据带入'
-  const r = String(e && e.relation || '')
-  if (r === 'belongs_to') return '按 URL 主机名归属自动判定'
-  if (r === 'subdomain_of') return '按域名后缀自动判定'
-  if (r === 'in_range') return '按 IP 是否落在该网段自动判定'
-  if (r === 'mailbox_at') return '按邮箱域名自动判定'
-  if (r === 'hosts_on') return '按 URL 主机名与 IP 一致自动判定'
-  if (r === 'exposes_port') return '按 URL 端口自动判定'
-  return '由本地关联规则自动判定'
-}
-
 function inputKind(v) {
   const s = String(v || '').trim()
   if (!s) return ''
@@ -673,31 +659,41 @@ function applyClient(ctx) {
       if (src === 'import') return '随导入带入'
       return ''
     }
+    const EV_PLACEHOLDER = { model: 1, import: 1, relay: 1, auto: 1, manual: 1, user: 1 }
+    function clip(s) { const t = String(s || '').trim(); return t.length > 118 ? t.slice(0, 117) + '…' : t }
+    function noteFirstLine(a) {
+      const raw = String(a && a.note || '')
+      for (const line of raw.split('\n')) {
+        const t = line.trim()
+        if (t) return clip(t)
+      }
+      return ''
+    }
     function assocInfo(a, list) {
       const byOther = {}
       const order = []
       for (const e of list) {
         const otherId = e.from === a.id ? e.to : e.from
-        if (!byOther[otherId]) { byOther[otherId] = { rels: [], tags: [] }; order.push(otherId) }
+        if (!byOther[otherId]) { byOther[otherId] = { rels: [], tags: [], how: '' }; order.push(otherId) }
         const g = byOther[otherId]
         const lab = relLabel(e.relation)
         if (g.rels.indexOf(lab) < 0) g.rels.push(lab)
         const tg = relTag(e)
         if (tg && g.tags.indexOf(tg) < 0) g.tags.push(tg)
+        const ev = String(e.evidence || '').trim()
+        if (!g.how && ev && !EV_PLACEHOLDER[ev]) g.how = clip(ev)
       }
-      const lines = []
+      const items = []
       for (const oid of order) {
         const other = assets.filter(function (x) { return x.id === oid })[0]
         if (!other) continue
         const g = byOther[oid]
-        lines.push(other.value + ' —— ' + g.rels.join('、') + (g.tags.length ? '（' + g.tags.join('、') + '）' : ''))
+        items.push({
+          text: other.value + ' —— ' + g.rels.join('、') + (g.tags.length ? '（' + g.tags.join('、') + '）' : ''),
+          basis: g.how || noteFirstLine(other)
+        })
       }
-      return { count: lines.length, lines: lines }
-    }
-    function uniqBasis(list) {
-      const out = []
-      for (const e of list) { const b = relBasis(e); if (out.indexOf(b) < 0) out.push(b) }
-      return out.join('\n')
+      return { count: items.length, items: items }
     }
 
     function nodeRadius(a) { return Math.min(15, 4.5 + Math.sqrt(degree[a.id] || 0) * 2.4) }
@@ -886,8 +882,10 @@ function applyClient(ctx) {
             React.createElement('div', null, originText(sel)),
             React.createElement('div', { className: 'rt-desc-h', style: { marginTop: 6 } }, '关联资产（' + selAssoc.count + '）'),
             selAssoc.count
-              ? React.createElement('div', { title: uniqBasis(selEdges) }, selAssoc.lines.map(function (t, i) {
-                  return React.createElement('div', { key: i }, '· ' + t)
+              ? React.createElement('div', null, selAssoc.items.map(function (it, i) {
+                  return React.createElement('div', { key: i, style: { marginBottom: 3 } },
+                    React.createElement('div', null, '· ' + it.text),
+                    it.basis ? React.createElement('div', { className: 'rt-dim', style: { paddingLeft: 10, opacity: .85 } }, '依据：' + it.basis) : null)
                 }))
               : React.createElement('div', { className: 'rt-dim' }, '暂无关联')),
           React.createElement('div', { className: 'rt-note' }, '标签'),
