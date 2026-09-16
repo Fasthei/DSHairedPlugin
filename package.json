@@ -59,7 +59,8 @@
     "build:lib": "node tools/build-lib.mjs",
     "check:lib": "node tools/build-lib.mjs --check",
     "test": "node test/render-smoke.mjs",
-    "prepack": "node tools/build-lib.mjs --check"
+    "prepack": "node tools/build-lib.mjs --check",
+    "publish:gh": "node tools/prepare-gh-packages.mjs"
   },
   "engines": {
     "node": ">=20"

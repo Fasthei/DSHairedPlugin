@@ -55,8 +55,45 @@ npm pack && dsh plugin --profile web add ./dsh-redteam-asset-graph-7.9.5.tgz
 dsh plugin --profile web remove dsh-redteam-asset-graph
 ```
 
-> **发布（维护者）**：`npm publish`。`prepack` 会先跑 `build-lib --check`，
-> `lib/` 与 `src/` 不一致时**拒绝发布**，避免发出漂移的包。
+### 发布位置（两个 registry）
+
+同一个插件在两个 registry 上发布，**包名不同**——这不是笔误，是两边的命名规则决定的：
+
+| registry | 包名 | 谁能直接装 |
+|---|---|---|
+| **npm**（主推） | `dsh-redteam-asset-graph` | 所有人，一条命令即可 |
+| **GitHub Packages** | `@fasthei/dsh-redteam-asset-graph` | 仅已授权者（见下） |
+
+**为什么必须两个名字**：GitHub Packages 要求包名是作用域形式，且作用域必须等于仓库属主
+（`Fasthei` → `@fasthei/…`）；而 npm 侧的作用域只能用自己的 npm 用户名，且不允许发布他人的
+作用域。所以无法用同一个名字覆盖两边。
+
+**GitHub Packages 的额外代价**（所以只作备用源）：该包是私有的，匿名读取返回 401，
+每个使用者都要先在自己 `~/.npmrc` 里声明 registry 与凭据：
+
+```
+@fasthei:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=<自己的 GitHub token，需 read:packages>
+```
+
+然后：
+
+```bash
+dsh plugin --profile web add @fasthei/dsh-redteam-asset-graph
+```
+
+> **发布（维护者）**
+>
+> ```bash
+> # npm（公开）
+> npm publish
+>
+> # GitHub Packages（作用域副本由脚本生成，避免手抄两份清单）
+> npm run publish:gh          # 生成 build/gh-packages/，name 改为 @fasthei/…
+> cd build/gh-packages && npm publish
+> ```
+>
+> 两边都受 `prepack` 保护：`lib/` 与 `src/` 漂移时**拒绝发布**，避免发出不一致的包。
 
 ---
 

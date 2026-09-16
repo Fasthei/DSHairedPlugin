@@ -21,3 +21,6 @@ node_modules/
 # ── 临时校验目录 ──
 .packtest/
 .check/
+
+# ── GitHub Packages 发布副本（由脚本生成）──
+build/
