@@ -120,7 +120,11 @@ function fakeView(opts) {
 
 let state = { scanned: false, confirmed: false }
 let calls = []
+// 记录 url：客户端必须打本插件自己的路由。只记 method 的话，路径写错成别的
+// 插件（v1.0.0 的实际事故：写死成了 asset-graph 的路径）也测不出来。
+const urls = []
 globalThis.fetch = async (url, init) => {
+  urls.push(url)
   let payload = {}
   try { payload = JSON.parse((init && init.body) || '{}') } catch (e) {}
   calls.push(payload.method)
@@ -227,6 +231,8 @@ const render = makeRenderer(Main)
 let tree = render.run()
 await settle(render)
 ok(calls.indexOf('snapshot') >= 0, '首屏调用了 snapshot')
+ok(urls.length > 0 && urls.every((u) => u === '/dsh-redteam-attack-matrix/rpc'),
+  'RPC 打的是本插件自己的路由（实际：' + JSON.stringify(Array.from(new Set(urls))) + '）')
 tree = render.run()
 let text = textOf(tree)
 ok(text.indexOf('攻击矩阵') >= 0, '标题出现')

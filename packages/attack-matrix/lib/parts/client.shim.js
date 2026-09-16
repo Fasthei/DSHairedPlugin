@@ -7,7 +7,10 @@ function applyClient(ctx) {
   //    且 fetch 只被【动态】半边屏蔽，静态模块可直接用。
   // 2) styles.insert：动态 runner 把它作为闭包参数注入，静态 bundle 里没有，
   //    故自行插入 <style> 元素（浏览器全局可用），并登记到 fiber 便于卸载清理。
-  const RPC_PATH = '/dsh-redteam-asset-graph/rpc'
+  // 路径必须是生成器替换的占位符，不能写死包名：写死会让本插件去调别的插件的
+  // 路由（v1.0.0 就是写死成了 asset-graph 的路径，发布出去面板全 404，而且与
+  // 资产图谱同时安装时还会读到对方的数据）。见 tools/build-lib.mjs 的 fill()。
+  const RPC_PATH = '__ROUTE_BASE__/rpc'
   const host = {
     call(method, args) {
       return fetch(RPC_PATH, {

@@ -3,6 +3,10 @@
 *.redteam-assets.json
 .redteam-asset-graph.rules.md
 
+# 攻击矩阵按工作区落盘的扫描结果，同样是真实目标数据
+.redteam-attack-matrix.json
+*.redteam-attack-matrix.json
+
 # ── 导出产物（本地生成） ──
 redteam-assets-*.json
 redteam-assets-*.csv

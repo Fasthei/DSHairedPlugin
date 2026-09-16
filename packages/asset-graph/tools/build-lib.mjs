@@ -127,6 +127,20 @@ if (hostHead.split(HOST_DECL).length - 1 !== 1 || !hostHead.includes(HOST_DECL +
 if (!assertCount(hostOut, HOST_DECL, 1, 'lib/host.js 中的 applyHost 声明')) structureBad++
 if (!assertCount(hostOut, 'harness.registerTool(ctx,', 3, 'lib/host.js 中的工具注册调用')) structureBad++
 if (!assertCount(clientOut, CLIENT_DECL, 1, 'lib/client.js 中的 applyClient 声明')) structureBad++
+
+// 工具经 ctx.tools.register 注册，而 Cordis 只允许访问 inject 里声明过的服务：
+// 漏掉 'tools' 会在插件树加载期抛 `cannot get property "tools" without inject`，
+// 整个 dsh 起不来 —— v7.9.6 就是以这种方式发给用户的，语言检查与 --check 都拦不住。
+const hostInject = (hostTail.match(/export const inject = \[([^\]]*)\]/) || [])[1] || ''
+if (hostOut.includes('harness.registerTool(ctx,') && hostInject.indexOf("'tools'") < 0) {
+  console.error(
+    'build-lib: src/ 注册了模型工具，但 lib/parts/host.tail.js 的 inject 里没有 "tools"。\n' +
+    '           工具走 ctx.tools.register，缺这个声明会让整个插件树加载失败：\n' +
+    '           cannot get property "tools" without inject\n' +
+    '           当前 inject = [' + hostInject.trim() + ']'
+  )
+  structureBad++
+}
 if (structureBad > 0) {
   console.error('build-lib: 产物结构不合规，已中止（详见上面各条）')
   process.exit(1)

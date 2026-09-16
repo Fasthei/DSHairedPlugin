@@ -33,5 +33,11 @@
 
 export const name = '__PLUGIN_NAME__'
 // 三个工具注册进宿主 tools 注册表；这里声明本半边硬依赖的服务。
-export const inject = ['fs', 'shell', 'timer', 'webServer']
+//
+// 'tools' 必须在列：Cordis 的服务是注入式的，没在 inject 里声明的服务一旦被
+// 属性访问就抛 `cannot get property "tools" without inject`，而这是插件树
+// 加载期的致命错误 —— 整个 dsh 起不来。三个工具都走 ctx.tools.register
+// （见 host.head.js 的 harness 垫片），所以必然要它。
+// v7.9.6 正是漏了这一个词，装了资产图谱的 profile 直接启动失败。
+export const inject = ['tools', 'fs', 'shell', 'timer', 'webServer']
 export { applyHost as apply }
