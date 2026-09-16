@@ -7,6 +7,9 @@
 .redteam-attack-matrix.json
 *.redteam-attack-matrix.json
 
+# 动态装载器（开发形态）写出的装载诊断，每次装载都会重写
+.rtmatrix-dev.json
+
 # ── 导出产物（本地生成） ──
 redteam-assets-*.json
 redteam-assets-*.csv

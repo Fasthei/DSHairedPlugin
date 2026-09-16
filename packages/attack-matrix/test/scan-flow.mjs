@@ -99,11 +99,15 @@ const sA = mkSession('session-a', 'AI 站点注入测试', mkEvents([
 ]))
 
 // 会话 B：普通开发对话（不应命中任何技术点）
+// 后两条是**插件自己的产出**：判定工具调用（arguments 里必然会引用被命中的关键词）
+// 与研判请求正文。它们必须被跳过 —— 否则是自反馈，同一批关键词会被反复放大。
 const sB = mkSession('session-b', '修一个前端 bug', mkEvents([
   { kind: 'user', text: '登录按钮点了没反应，帮我看看' },
   { kind: 'assistant', text: '我先读一下组件代码，确认事件绑定有没有写错。' },
   { kind: 'tool', name: 'read', args: '{"file_path":"src/Login.tsx"}', result: 'export function Login() { ... }' },
   { kind: 'assistant', text: '问题在于 onClick 被条件短路了，把 && 改成 ?. 就好。' },
+  { kind: 'tool', name: 'matrix_label', args: '{"frameworkId":"owasp-llm","techniqueId":"LLM01","decision":"rejected","reason":"命中词 prompt injection 是误报，属于正常开发"}' },
+  { kind: 'user', text: '【攻击矩阵 · 自动研判】工作区：/ws/proj-one\n\n待判定 1 条：\n- owasp-llm / LLM01 Prompt Injection\n  命中词：prompt injection\n  证据：试试 prompt injection' },
 ]))
 
 // 会话 C：另一类命中（越权动作 + 数据外带）
@@ -210,6 +214,20 @@ let view
   const detailB = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
   const opsB = (detailB.operations || []).filter((o) => o.sessionId === 'session-b')
   ok(opsB.length === 0, '普通开发会话 session-b 没有被误报进 LLM01')
+
+  // 自反馈回归：session-b 里塞了插件自己的产出（matrix_label 调用 + 研判请求正文），
+  // 两者都直接写着 "prompt injection"。它们必须被跳过，否则插件会把自己的判定日志
+  // 当成新证据，同一批关键词一轮轮放大（实测污染过 25 个桶）。
+  const allOps = []
+  for (const f of view.frameworks) {
+    for (const e of f.entries) {
+      if (e.occurrences === 0) continue
+      const dt = await rpc('technique', { workspaceId: 'w1', frameworkId: f.id, techniqueId: e.id })
+      for (const o of dt.operations || []) allOps.push(o.sessionId)
+    }
+  }
+  ok(allOps.indexOf('session-b') < 0,
+    '插件自己的产出（matrix_label 调用与研判请求正文）被跳过，没有产生任何命中（session-b 出现在 ' + allOps.filter((x) => x === 'session-b').length + ' 个桶里）')
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -303,6 +321,184 @@ console.log('\n[6] 工作区切换：数据集互不污染')
   const back = await rpc('snapshot', { workspaceId: 'w1' })
   const f1 = back.view.frameworks.filter((x) => x.id === 'owasp-llm')[0]
   ok(!!f1.entries.filter((e) => e.id === 'LLM01')[0], '切回 w1 仍能读到自己的数据')
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n[7] 清除 vs 重扫：区别只在扫描续点')
+{
+  const base = await rpc('scan', { workspaceId: 'w1' })
+  const n0 = base.view.frameworks.reduce((n, f) => n + f.operations, 0)
+  ok(n0 > 0, 'w1 基线命中数 > 0（' + n0 + '）')
+
+  // 清除：清空命中记录与判定结论，但**保留**扫描续点
+  const c = await rpc('clear', { workspaceId: 'w1' })
+  ok(c.ok === true, 'clear 成功')
+  ok(c.cleared > 0, 'clear 报告了被清的条目数（' + c.cleared + '）')
+  const afterClear = c.view.frameworks.reduce((n, f) => n + f.operations, 0)
+  ok(afterClear === 0, '清除后命中数归零（' + afterClear + '）')
+  ok((c.view.pending || {}).total === 0, '清除后待判定队列也空了')
+  const clearedLog = (c.view.log || []).filter((e) => String(e.text).indexOf('人工清除') >= 0)
+  ok(clearedLog.length === 1, '清除动作本身留下一条日志（审计链不断）')
+
+  // 关键区别：清除之后再扫，历史事件不会被重新扫回来
+  const again = await rpc('scan', { workspaceId: 'w1' })
+  const afterRescan = again.view.frameworks.reduce((n, f) => n + f.operations, 0)
+  ok(afterRescan === 0, '清除后再扫，历史事件不会重新入表（' + afterRescan + '）')
+
+  // 重扫把水位也清掉，于是历史命中重新入表 —— 所以清除是可逆的。
+  // 注意它**不是**「原样恢复」：重扫按事件重算，连前面 ignore 删掉的桶也会一并重建
+  // （所以数值可能比基线大）。重扫会丢掉全部判定结论，这一点必须让使用者知道。
+  const rs = await rpc('scan', { workspaceId: 'w1', reset: true })
+  const afterReset = rs.view.frameworks.reduce((n, f) => n + f.operations, 0)
+  ok(afterReset >= n0, '重扫把历史命中重建回来（' + n0 + ' → ' + afterReset + '），所以清除可逆')
+  const l1 = rs.view.frameworks.filter((f) => f.id === 'owasp-llm')[0].entries.filter((e) => e.id === 'LLM01')[0]
+  ok(l1.occurrences > 0, '重扫把之前 ignore 掉的桶也重建了（LLM01 命中 ' + l1.occurrences + '）—— 重扫会丢掉判定结论')
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n[8] 目标提取：时间线/日志要能一眼看出打的是谁')
+{
+  const d = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  const ops = d.operations || []
+  ok(ops.length > 0, '有命中操作可查')
+  const withTargets = ops.filter((o) => Array.isArray(o.targets) && o.targets.length > 0)
+  ok(withTargets.length > 0, '命中操作带上了 targets（' + withTargets.length + '/' + ops.length + '）')
+  const all = withTargets.reduce((a, o) => a.concat(o.targets), [])
+  ok(all.indexOf('target.example.com') >= 0, '抽出了主机名 target.example.com（实际：' + JSON.stringify(all.slice(0, 6)) + '）')
+  ok(all.some((t) => t.indexOf('https://target.example.com/api/chat') === 0), '抽出了完整 URL')
+
+  const snap = await rpc('snapshot', { workspaceId: 'w1' })
+  const tl = (snap.view.timeline || []).filter((t) => t.targets && t.targets.length)
+  ok(tl.length > 0, '时间线条目也带 targets（' + tl.length + '/' + (snap.view.timeline || []).length + '）')
+
+  // 兜底路径：加 targets 字段之前扫出来的桶没有它，必须能从留存的证据片段里现取 ——
+  // 否则老数据要为了看目标而重扫，而重扫会丢掉已有的判定结论。
+  const p = WS1 + '/.redteam-attack-matrix.json'
+  const data = JSON.parse(files.get(p))
+  let stripped = 0
+  for (const fw of Object.keys(data.matrix)) {
+    for (const tid of Object.keys(data.matrix[fw])) {
+      for (const sid of Object.keys(data.matrix[fw][tid])) {
+        const h = data.matrix[fw][tid][sid]
+        if (Array.isArray(h.targets) && h.targets.length) { h.targets = []; stripped++ }
+      }
+    }
+  }
+  files.set(p, JSON.stringify(data))
+  const d2 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  const fb = (d2.operations || []).reduce((a, o) => a.concat(o.targets || []), [])
+  ok(stripped > 0, '构造了 ' + stripped + ' 条没有 targets 的老数据')
+  ok(fb.indexOf('target.example.com') >= 0, '老数据仍能从证据片段现取目标（实际：' + JSON.stringify(fb.slice(0, 4)) + '）')
+}
+
+console.log('\n[9] 导出 CSV：取全部桶，带表头与 BOM')
+{
+  const snap = await rpc('snapshot', { workspaceId: 'w1' })
+  const total = snap.view.timelineTotal || 0
+  const ex = await rpc('exportCsv', { workspaceId: 'w1' })
+  ok(ex.ok === true, 'exportCsv 成功')
+  ok(/^attack-matrix-.*\.csv$/.test(ex.filename || ''), '文件名像样：' + ex.filename)
+  ok(String(ex.content).charCodeAt(0) === 0xfeff, '首字符是 UTF-8 BOM（否则 Excel 读中文乱码）')
+  const lines = String(ex.content).replace(/^\ufeff/, '').trim().split('\r\n')
+  ok(lines[0].indexOf('targets') >= 0 && lines[0].indexOf('firstAtLocal') >= 0 && lines[0].indexOf('reason') >= 0,
+    '表头包含 targets / firstAtLocal / reason')
+  ok(lines.length - 1 === total, '导出行数与时间线分组数一致（' + (lines.length - 1) + ' vs ' + total + '）—— 说明导出的是全部而不是面板显示的那部分')
+  ok(ex.rows === total, 'rows 字段与之一致')
+  const dataRows = lines.slice(1).filter(Boolean)
+  ok(dataRows.some((l) => l.indexOf('owasp-llm') >= 0), '数据行里含 owasp-llm 的命中')
+  // 每行 17 列（与表头一一对应）—— 列错位是 CSV 最典型的静默故障
+  const badCols = dataRows.filter((l) => l.split(',').length < 17).length
+  ok(badCols === 0, '每行都不少于 17 列（列数异常的行：' + badCols + '）')
+}
+
+console.log('\n[10] 忽略会话：把「非目标」的对话整个关掉')
+{
+  // 先确保 session-a 有记录
+  await rpc('scan', { workspaceId: 'w1', reset: true })
+  const detail0 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  ok((detail0.operations || []).some((o) => o.sessionId === 'session-a'), '忽略前 session-a 在 LLM01 里有记录')
+
+  const ig = await rpc('ignoreSession', { workspaceId: 'w1', sessionId: 'session-a' })
+  ok(ig.ok === true, 'ignoreSession 成功')
+  ok(ig.removed > 0, '移出了 ' + ig.removed + ' 条命中记录')
+  ok((ig.ignored || []).indexOf('session-a') >= 0, 'session-a 进入忽略名单')
+  ok((ig.view.ignored || []).indexOf('session-a') >= 0, '视图里也带上了忽略名单')
+  const detail1 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  ok(!(detail1.operations || []).some((o) => o.sessionId === 'session-a'), '忽略后它的记录已清掉')
+
+  // 关键：增量扫描与重扫都不能把它带回来
+  await rpc('scan', { workspaceId: 'w1' })
+  const afterInc = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  ok(!(afterInc.operations || []).some((o) => o.sessionId === 'session-a'), '增量扫描不会把它带回来')
+  await rpc('scan', { workspaceId: 'w1', reset: true })
+  const afterReset = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  ok(!(afterReset.operations || []).some((o) => o.sessionId === 'session-a'), '重扫也不把它带回来（忽略名单优先于水位）')
+
+  // 可逆：恢复 + 重扫，历史命中回来
+  const back = await rpc('ignoreSession', { workspaceId: 'w1', sessionId: 'session-a', off: true })
+  ok((back.ignored || []).indexOf('session-a') < 0, '恢复后离开忽略名单')
+  await rpc('scan', { workspaceId: 'w1', reset: true })
+  const detail2 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  ok((detail2.operations || []).some((o) => o.sessionId === 'session-a'), '恢复后重扫，历史命中回来了（所以忽略是可逆的）')
+
+  const snap = await rpc('snapshot', { workspaceId: 'w1' })
+  const igLog = (snap.view.log || []).filter((e) => String(e.text).indexOf('忽略会话') >= 0)
+  ok(igLog.length >= 1, '忽略动作写进了日志（审计链）')
+}
+
+console.log('\n[11] 框架数据完整性：阶段 id 必须能对上（对不上标签页就是一块黑板）')
+{
+  const fw = await rpc('frameworks')
+  ok(fw.ok === true, 'frameworks 返回成功')
+  let bad = 0
+  let checked = 0
+  const detail = []
+  for (const f of fw.frameworks) {
+    const ids = new Set((f.tactics || []).map((t) => t.id))
+    for (const t of f.techniques) {
+      checked++
+      const refs = t.tactic_ids || []
+      if (refs.length === 0) continue
+      if (!refs.some((x) => ids.has(x))) {
+        bad++
+        if (detail.length < 3) detail.push(f.id + '/' + t.id + ' → ' + JSON.stringify(refs))
+      }
+    }
+  }
+  ok(checked > 0, '检查了 ' + checked + ' 个技术点')
+  // 这条就是 ATT&CK 黑板事故的回归线：技术点写 slug、阶段表写 TA00xx，46 个全被吞掉
+  ok(bad === 0, '没有技术点引用不存在的阶段' + (bad ? '（' + detail.join('; ') + '）' : ''))
+  const unusable = fw.frameworks.filter((f) => {
+    if ((f.tactics || []).length === 0 || f.techniques.length === 0) return false
+    const ids = new Set((f.tactics || []).map((t) => t.id))
+    return !f.techniques.some((t) => (t.tactic_ids || []).some((x) => ids.has(x)))
+  })
+  ok(unusable.length === 0, '没有「声明了阶段却一个技术点都对不上」的框架' + (unusable.length ? '（' + unusable.map((f) => f.id).join(',') + '）' : ''))
+}
+
+console.log('\n[12] 证据片段：最早 2 条 + 滚动保留最新 2 条（判定者要看得见后面的关键动作）')
+{
+  await rpc('scan', { workspaceId: 'w2', reset: true })
+  sC._push(mkEvents([
+    { kind: 'user', text: '第一处 prompt injection 尝试' },
+    { kind: 'user', text: '第二处 prompt injection 尝试' },
+    { kind: 'user', text: '第三处 prompt injection 尝试' },
+    { kind: 'user', text: '第四处 prompt injection 尝试' },
+    { kind: 'user', text: '第五处 prompt injection 尝试' },
+    { kind: 'user', text: '第六处 prompt injection 尝试' },
+  ]))
+  await rpc('scan', { workspaceId: 'w2' })
+  const d = await rpc('technique', { workspaceId: 'w2', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  const op = (d.operations || []).filter((o) => o.sessionId === 'session-c')[0]
+  ok(!!op, 'w2 的 session-c 命中了 LLM01')
+  if (op) {
+    const texts = (op.snippets || []).map((s) => s.text)
+    ok(texts.length === 4, '片段数封顶在 4 条（实际 ' + texts.length + '）')
+    ok(texts[0].indexOf('第一处') >= 0 && texts[1].indexOf('第二处') >= 0, '最早两条留着（桶从哪儿开始）')
+    // 这条就是「未授权模型创建/删除没被记上」那次事故的回归线：只留最早的 4 条会漏掉后面的关键动作
+    ok(texts[2].indexOf('第五处') >= 0 && texts[3].indexOf('第六处') >= 0,
+      '最新两条滚进来了（实际：' + JSON.stringify(texts.slice(2)) + '）')
+  }
 }
 
 console.log('\n' + (fails.length === 0 ? '✓ 全部通过（' + pass + ' 项）' : '✗ 失败 ' + fails.length + ' 项：\n  - ' + fails.join('\n  - ')))

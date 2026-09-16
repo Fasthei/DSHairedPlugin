@@ -6,17 +6,9 @@
 | 插件 | 包名 | 仓库版本 | 用途 | 状态 |
 |---|---|---|---|---|
 | [资产图谱](packages/asset-graph/) | `dsh-redteam-asset-graph` | `7.9.7` | 目标资产自动收集、关联、可视化，模型参与研判 | ✅ 已发布 |
-| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.0.1` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
+| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.1.0` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | 📦 待发布 |
 | [记忆](packages/memory/) | `dsh-redteam-memory` | `0.1.0` | 跨会话保留目标上下文，避免重复侦察 | 🚧 开发中 |
 | [报告](packages/report/) | `dsh-redteam-report` | `0.1.0` | 把图谱与研判结论汇成可交付报告 | 🚧 开发中 |
-
-> ⚠️ **npm 上那两个已发布的版本有缺陷，先别装**：
-> `dsh-redteam-asset-graph@7.9.6` 的 `inject` 漏了 `'tools'`，装进 profile 后
-> **整个 dsh 起不来**（不是少三个工具，是插件树加载期就抛
-> `cannot get property "tools" without inject`）；
-> `dsh-redteam-attack-matrix@1.0.0` 把客户端 RPC 路径写死成了资产图谱的路由，
-> **面板全 404**，两者同时安装还会读到对方的数据。
-> 修复分别在 `7.9.7` 与 `1.0.1` —— **请装这两个或更高版本**，细节见各包 README 的「版本」一节。
 
 ---
 

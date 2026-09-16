@@ -1099,29 +1099,9 @@ function applyHost(ctx) {
     source: "MITRE ATT&CK Enterprise（企业版），https://attack.mitre.org/ —— 数据取自官方 TAXII 2.1 接口；只收与 AI/LLM 红队对话相关的 46 个技术点，不是全量。",
     tactics: [
       {
-        "id": "TA0007",
-        "name": "Discovery",
-        "description": "The adversary is trying to figure out your environment. Discovery consists of techniques an adversary may use to gain knowledge about the system and internal network. These techniques help adversaries observe the environment and orient themselves before deciding how to act. They also allow adversaries to explore what they can control and what’s around their entry point in order to discover how it could benefit their current objective. Native operating system tools are often used toward this post-compromise information-gathering objective."
-      },
-      {
-        "id": "TA0010",
-        "name": "Exfiltration",
-        "description": "The adversary is trying to steal data. Exfiltration consists of techniques that adversaries may use to steal data from your network. Once they’ve collected data, adversaries often package it to avoid detection while removing it. This can include compression and encryption. Techniques for getting data out of a target network typically include transferring it over their command and control channel or an alternate channel and may also include putting size limits on the transmission."
-      },
-      {
-        "id": "TA0006",
-        "name": "Credential Access",
-        "description": "The adversary is trying to steal account names and passwords. Credential Access consists of techniques for stealing credentials like account names and passwords. Techniques used to get credentials include keylogging or credential dumping. Using legitimate credentials can give adversaries access to systems, make them harder to detect, and provide the opportunity to create more accounts to help achieve their goals."
-      },
-      {
-        "id": "TA0040",
-        "name": "Impact",
-        "description": "The adversary is trying to manipulate, interrupt, or destroy your systems and data. Impact consists of techniques that adversaries use to disrupt availability or compromise integrity by manipulating business and operational processes. Techniques used for impact can include destroying or tampering with data. In some cases, business processes can look fine, but may have been altered to benefit the adversaries’ goals. These techniques might be used by adversaries to follow through on their end goal or to provide cover for a confidentiality breach."
-      },
-      {
-        "id": "TA0001",
-        "name": "Initial Access",
-        "description": "The adversary is trying to get into your network. Initial Access consists of techniques that use various entry vectors to gain their initial foothold within a network. Techniques used to gain a foothold include targeted spearphishing and exploiting weaknesses on public-facing web servers. Footholds gained through initial access may allow for continued access, like valid accounts and use of external remote services, or may be limited-use due to changing passwords."
+        "id": "TA0043",
+        "name": "Reconnaissance",
+        "description": "The adversary is trying to gather information they can use to plan future operations. Reconnaissance consists of techniques that involve adversaries actively or passively gathering information that can be used to support targeting. Such information may include details of the victim organization, infrastructure, or staff/personnel. This information can be leveraged by the adversary to aid in other phases of the adversary lifecycle, such as using gathered information to plan and execute Initial Access, to scope and prioritize post-compromise objectives, or to drive and lead further Reconnaissance efforts."
       },
       {
         "id": "TA0042",
@@ -1129,9 +1109,49 @@ function applyHost(ctx) {
         "description": "The adversary is trying to establish resources they can use to support operations. Resource Development consists of techniques that involve adversaries creating, purchasing, or compromising/stealing resources that can be used to support targeting. Such resources include infrastructure, accounts, or capabilities. These resources can be leveraged by the adversary to aid in other phases of the adversary lifecycle, such as using purchased domains to support Command and Control, email accounts for phishing as a part of Initial Access, or stealing code signing certificates to help with Defense Evasion."
       },
       {
+        "id": "TA0001",
+        "name": "Initial Access",
+        "description": "The adversary is trying to get into your network. Initial Access consists of techniques that use various entry vectors to gain their initial foothold within a network. Techniques used to gain a foothold include targeted spearphishing and exploiting weaknesses on public-facing web servers. Footholds gained through initial access may allow for continued access, like valid accounts and use of external remote services, or may be limited-use due to changing passwords."
+      },
+      {
+        "id": "TA0002",
+        "name": "Execution",
+        "description": "The adversary is trying to run malicious code. Execution consists of techniques that result in adversary-controlled code running on a local or remote system. Techniques that run malicious code are often paired with techniques from all other tactics to achieve broader goals, like exploring a network or stealing data. For example, an adversary might use a remote access tool to run a PowerShell script that does Remote System Discovery."
+      },
+      {
+        "id": "TA0003",
+        "name": "Persistence",
+        "description": "The adversary is trying to maintain their foothold. Persistence consists of techniques that adversaries use to keep access to systems across restarts, changed credentials, and other interruptions that could cut off their access. Techniques used for persistence include any access, action, or configuration changes that let them maintain their foothold on systems, such as replacing or hijacking legitimate code or adding startup code."
+      },
+      {
         "id": "TA0004",
         "name": "Privilege Escalation",
         "description": "The adversary is trying to gain higher-level permissions. Privilege Escalation consists of techniques that adversaries use to gain higher-level permissions on a system or network. Adversaries can often enter and explore a network with unprivileged access but require elevated permissions to follow through on their objectives. Common approaches are to take advantage of system weaknesses, misconfigurations, and vulnerabilities. Examples of elevated access include: * SYSTEM/root level * local administrator * user account with admin-like access * user accounts with access to specific system or perform specific function These techniques often overlap with Persistence techniques, as OS features that let an adversary persist can execute in an elevated context."
+      },
+      {
+        "id": "TA0005",
+        "name": "Stealth",
+        "description": "The adversary is trying to hide and conceal their actions, appearing as normal behavior. Stealth consists of techniques that reduce the likelihood of detection by blending in with legitimate activity or minimizing observable signals. These techniques are characterized by concealment behaviors, such as avoiding, obfuscating, or mimicking normal operations, without modifying security controls or compromising collection and monitoring feeds. The goal is to remain indistinguishable from benign activity while leaving defensive systems intact."
+      },
+      {
+        "id": "TA0112",
+        "name": "Defense Impairment",
+        "description": "The adversary is trying to break security mechanisms, pipelines, and tooling so defenders can’t see or trust what’s happening. Defense Impairment consists of techniques that degrade, disable, or undermine the effectiveness and trustworthiness of security controls and monitoring mechanisms. These techniques are characterized by direct interference with defensive systems. The goal is to reduce defenders’ ability to detect, interpret, or respond to adversary activity."
+      },
+      {
+        "id": "TA0006",
+        "name": "Credential Access",
+        "description": "The adversary is trying to steal account names and passwords. Credential Access consists of techniques for stealing credentials like account names and passwords. Techniques used to get credentials include keylogging or credential dumping. Using legitimate credentials can give adversaries access to systems, make them harder to detect, and provide the opportunity to create more accounts to help achieve their goals."
+      },
+      {
+        "id": "TA0007",
+        "name": "Discovery",
+        "description": "The adversary is trying to figure out your environment. Discovery consists of techniques an adversary may use to gain knowledge about the system and internal network. These techniques help adversaries observe the environment and orient themselves before deciding how to act. They also allow adversaries to explore what they can control and what’s around their entry point in order to discover how it could benefit their current objective. Native operating system tools are often used toward this post-compromise information-gathering objective."
+      },
+      {
+        "id": "TA0008",
+        "name": "Lateral Movement",
+        "description": "The adversary is trying to move through your environment. Lateral Movement consists of techniques that adversaries use to enter and control remote systems on a network. Following through on their primary objective often requires exploring the network to find their target, then pivoting through multiple systems and accounts to gain access to it. Adversaries might install their own remote access tools to accomplish Lateral Movement or use legitimate credentials with native network and operating system tools, which may be stealthier."
       },
       {
         "id": "TA0009",
@@ -1144,34 +1164,14 @@ function applyHost(ctx) {
         "description": "The adversary is trying to communicate with compromised systems to control them. Command and Control consists of techniques that adversaries may use to communicate with systems under their control within a victim network. Adversaries commonly attempt to mimic normal, expected traffic to avoid detection. There are many ways an adversary can establish command and control with various levels of stealth depending on the victim’s network structure and defenses."
       },
       {
-        "id": "TA0112",
-        "name": "Defense Impairment",
-        "description": "The adversary is trying to break security mechanisms, pipelines, and tooling so defenders can’t see or trust what’s happening. Defense Impairment consists of techniques that degrade, disable, or undermine the effectiveness and trustworthiness of security controls and monitoring mechanisms. These techniques are characterized by direct interference with defensive systems. The goal is to reduce defenders’ ability to detect, interpret, or respond to adversary activity."
+        "id": "TA0010",
+        "name": "Exfiltration",
+        "description": "The adversary is trying to steal data. Exfiltration consists of techniques that adversaries may use to steal data from your network. Once they’ve collected data, adversaries often package it to avoid detection while removing it. This can include compression and encryption. Techniques for getting data out of a target network typically include transferring it over their command and control channel or an alternate channel and may also include putting size limits on the transmission."
       },
       {
-        "id": "TA0005",
-        "name": "Stealth",
-        "description": "The adversary is trying to hide and conceal their actions, appearing as normal behavior. Stealth consists of techniques that reduce the likelihood of detection by blending in with legitimate activity or minimizing observable signals. These techniques are characterized by concealment behaviors, such as avoiding, obfuscating, or mimicking normal operations, without modifying security controls or compromising collection and monitoring feeds. The goal is to remain indistinguishable from benign activity while leaving defensive systems intact."
-      },
-      {
-        "id": "TA0002",
-        "name": "Execution",
-        "description": "The adversary is trying to run malicious code. Execution consists of techniques that result in adversary-controlled code running on a local or remote system. Techniques that run malicious code are often paired with techniques from all other tactics to achieve broader goals, like exploring a network or stealing data. For example, an adversary might use a remote access tool to run a PowerShell script that does Remote System Discovery."
-      },
-      {
-        "id": "TA0008",
-        "name": "Lateral Movement",
-        "description": "The adversary is trying to move through your environment. Lateral Movement consists of techniques that adversaries use to enter and control remote systems on a network. Following through on their primary objective often requires exploring the network to find their target, then pivoting through multiple systems and accounts to gain access to it. Adversaries might install their own remote access tools to accomplish Lateral Movement or use legitimate credentials with native network and operating system tools, which may be stealthier."
-      },
-      {
-        "id": "TA0043",
-        "name": "Reconnaissance",
-        "description": "The adversary is trying to gather information they can use to plan future operations. Reconnaissance consists of techniques that involve adversaries actively or passively gathering information that can be used to support targeting. Such information may include details of the victim organization, infrastructure, or staff/personnel. This information can be leveraged by the adversary to aid in other phases of the adversary lifecycle, such as using gathered information to plan and execute Initial Access, to scope and prioritize post-compromise objectives, or to drive and lead further Reconnaissance efforts."
-      },
-      {
-        "id": "TA0003",
-        "name": "Persistence",
-        "description": "The adversary is trying to maintain their foothold. Persistence consists of techniques that adversaries use to keep access to systems across restarts, changed credentials, and other interruptions that could cut off their access. Techniques used for persistence include any access, action, or configuration changes that let them maintain their foothold on systems, such as replacing or hijacking legitimate code or adding startup code."
+        "id": "TA0040",
+        "name": "Impact",
+        "description": "The adversary is trying to manipulate, interrupt, or destroy your systems and data. Impact consists of techniques that adversaries use to disrupt availability or compromise integrity by manipulating business and operational processes. Techniques used for impact can include destroying or tampering with data. In some cases, business processes can look fine, but may have been altered to benefit the adversaries’ goals. These techniques might be used by adversaries to follow through on their end goal or to provide cover for a confidentiality breach."
       }
     ],
     techniques: [
@@ -1179,7 +1179,7 @@ function applyHost(ctx) {
         "id": "T1595",
         "name": "Active Scanning",
         "tactic_ids": [
-          "reconnaissance"
+          "TA0043"
         ],
         "description": "Adversaries may execute active reconnaissance scans to gather information that can be used during targeting. Active scans are those where the adversary probes victim infrastructure via network traffic, as opposed to other forms of reconnaissance that do not involve direct interaction. Adversaries may perform different forms of active scanning depending on what information they seek to gather. These scans can also be performed in various ways, including using native features of network protocols such as ICMP.(Citation: Botnet Scan)(Citation: OWASP Fingerprinting) Information from these scans may reveal opportunities for other forms of reconnaissance (ex: [Search Open Websites/Domains](https://attack.mitre.org/techniques/T1593) or [Search Open Technical Databases](https://attack.mitre.org/techniques/T1596)), establishing operational resources (ex: [Develop Capabilities](https://attack.mitre.org/techniques/T1587) or [Obtain Capabilities](https://attack.mitre.org/techniques/T1588)), and/or initial access (ex: [External Remote Services](https://attack.mitre.org/techniques/T1133) or [Exploit Public-Facing Application](https://attack.mitre.org/techniques/T1190)).",
         "detect_keywords": [
@@ -1198,7 +1198,7 @@ function applyHost(ctx) {
         "id": "T1596",
         "name": "Search Open Technical Databases",
         "tactic_ids": [
-          "reconnaissance"
+          "TA0043"
         ],
         "description": "Adversaries may search freely available technical databases for information about victims that can be used during targeting. Information about victims may be available in online databases and repositories, such as registrations of domains/certificates as well as public collections of network data/artifacts gathered from traffic and/or scans.(Citation: WHOIS)(Citation: DNS Dumpster)(Citation: Circl Passive DNS)(Citation: Medium SSL Cert)(Citation: SSLShopper Lookup)(Citation: DigitalShadows CDN)(Citation: Shodan) Adversaries may search in different open databases depending on what information they seek to gather. Information from these sources may reveal opportunities for other forms of reconnaissance (ex: [Phishing for Information](https://attack.mitre.org/techniques/T1598) or [Search Open Websites/Domains](https://attack.mitre.org/techniques/T1593)), establishing operational resources (ex: [Acquire Infrastructure](https://attack.mitre.org/techniques/T1583) or [Compromise Infrastructure](https://attack.mitre.org/techniques/T1584)), and/or initial access (ex: [External Remote Services](https://attack.mitre.org/techniques/T1133) or [Trusted Relationship](https://attack.mitre.org/techniques/T1199)).",
         "detect_keywords": [
@@ -1217,7 +1217,7 @@ function applyHost(ctx) {
         "id": "T1598",
         "name": "Phishing for Information",
         "tactic_ids": [
-          "reconnaissance"
+          "TA0043"
         ],
         "description": "Adversaries may send phishing messages to elicit sensitive information that can be used during targeting. Phishing for information is an attempt to trick targets into divulging information, frequently credentials or other actionable information. Phishing for information is different from [Phishing](https://attack.mitre.org/techniques/T1566) in that the objective is gathering data from the victim rather than executing malicious code. All forms of phishing are electronically delivered social engineering. Phishing can be targeted, known as spearphishing. In spearphishing, a specific individual, company, or industry will be targeted by the adversary. More generally, adversaries can conduct non-targeted phishing, such as in mass credential harvesting campaigns. Adversaries may also try to obtain information directly through the exchange of emails, instant messages, or other electronic conversation means.(Citation: ThreatPost Social Media Phishing)(Citation: TrendMictro Phishing)(Citation: PCMag FakeLogin)(Citation: Sophos Attachment)(Citation: GitHub Phishery) Victims may also receive phishing messages that direct them to call a phone number where the adversary attempts to collect confidential information.(Citation: Avertium callback phishing) Phishing for information frequently involves social engineering techniques, such as posing as a source with a reason to collect information (ex: [Establish Accounts](https://attack.mitre.org/techniques/T1585) or [Compromise Accounts](https://attack.mitre.org/techniques/T1586)) and/or sending multiple, seemingly urgent messages. Another way to accomplish this is by [Email Spoofing](https://attack.mitre.org/techniques/T1684/002)(Citation: Proofpoint-spoof) the identity of the sender, which can be used to fool both the human recipient as well as automated security tools.(Citation: cyberproof-double-bounce) Phishing for information may also involve evasive techniques, such as removing or manipulating emails or metadata/headers from compromised accounts being abused to send messages (e.g., [Email Hiding Rules](https://attack.mitre.org/techniques/T1564/008)).(Citation: Microsoft OAuth Spam 2022)(Citation: Palo Alto Unit 42 VBA Infostealer 2014)",
         "detect_keywords": [
@@ -1234,7 +1234,7 @@ function applyHost(ctx) {
         "id": "T1583",
         "name": "Acquire Infrastructure",
         "tactic_ids": [
-          "resource-development"
+          "TA0042"
         ],
         "description": "Adversaries may buy, lease, rent, or obtain infrastructure that can be used during targeting. A wide variety of infrastructure exists for hosting and orchestrating adversary operations. Infrastructure solutions include physical or cloud servers, domains, and third-party web services.(Citation: TrendmicroHideoutsLease) Some infrastructure providers offer free trial periods, enabling infrastructure acquisition at limited to no cost.(Citation: Free Trial PurpleUrchin) Additionally, botnets are available for rent or purchase. Use of these infrastructure solutions allows adversaries to stage, launch, and execute operations. Solutions may help adversary operations blend in with traffic that is seen as normal, such as contacting third-party web services or acquiring infrastructure to support [Proxy](https://attack.mitre.org/techniques/T1090), including from residential proxy services.(Citation: amnesty_nso_pegasus)(Citation: FBI Proxies Credential Stuffing)(Citation: Mandiant APT29 Microsoft 365 2022) Depending on the implementation, adversaries may use infrastructure that makes it difficult to physically tie back to them as well as utilize infrastructure that can be rapidly provisioned, modified, and shut down.",
         "detect_keywords": [
@@ -1252,7 +1252,7 @@ function applyHost(ctx) {
         "id": "T1587",
         "name": "Develop Capabilities",
         "tactic_ids": [
-          "resource-development"
+          "TA0042"
         ],
         "description": "Adversaries may build capabilities that can be used during targeting. Rather than purchasing, freely downloading, or stealing capabilities, adversaries may develop their own capabilities in-house. This is the process of identifying development requirements and building solutions such as malware, exploits, and self-signed certificates. Adversaries may develop capabilities to support their operations throughout numerous phases of the adversary lifecycle.(Citation: Mandiant APT1)(Citation: Kaspersky Sofacy)(Citation: Bitdefender StrongPity June 2020)(Citation: Talos Promethium June 2020) As with legitimate development efforts, different skill sets may be required for developing capabilities. The skills needed may be located in-house, or may need to be contracted out. Use of a contractor may be considered an extension of that adversary's development capabilities, provided the adversary plays a role in shaping requirements and maintains a degree of exclusivity to the capability.",
         "detect_keywords": [
@@ -1269,7 +1269,7 @@ function applyHost(ctx) {
         "id": "T1588",
         "name": "Obtain Capabilities",
         "tactic_ids": [
-          "resource-development"
+          "TA0042"
         ],
         "description": "Adversaries may buy and/or steal capabilities that can be used during targeting. Rather than developing their own capabilities in-house, adversaries may purchase, freely download, or steal them. Activities may include the acquisition of malware, software (including licenses), exploits, certificates, and information relating to vulnerabilities. Adversaries may obtain capabilities to support their operations throughout numerous phases of the adversary lifecycle. In addition to downloading free malware, software, and exploits from the internet, adversaries may purchase these capabilities from third-party entities. Third-party entities can include technology companies that specialize in malware and exploits, criminal marketplaces, or from individuals.(Citation: NationsBuying)(Citation: PegasusCitizenLab) In addition to purchasing capabilities, adversaries may steal capabilities from third-party entities (including other adversaries). This can include stealing software licenses, malware, SSL/TLS and code-signing certificates, or raiding closed databases of vulnerabilities or exploits.(Citation: DiginotarCompromise)",
         "detect_keywords": [
@@ -1288,10 +1288,10 @@ function applyHost(ctx) {
         "id": "T1078",
         "name": "Valid Accounts",
         "tactic_ids": [
-          "stealth",
-          "persistence",
-          "privilege-escalation",
-          "initial-access"
+          "TA0005",
+          "TA0003",
+          "TA0004",
+          "TA0001"
         ],
         "description": "Adversaries may obtain and abuse credentials of existing accounts as a means of gaining Initial Access, Persistence, Privilege Escalation, or Defense Evasion. Compromised credentials may be used to bypass access controls placed on various resources on systems within the network and may even be used for persistent access to remote systems and externally available services, such as VPNs, Outlook Web Access, network devices, and remote desktop.(Citation: volexity_0day_sophos_FW) Compromised credentials may also grant an adversary increased privilege to specific systems or access to restricted areas of the network. Adversaries may choose not to use malware or tools in conjunction with the legitimate access those credentials provide to make it harder to detect their presence. In some cases, adversaries may abuse inactive accounts: for example, those belonging to individuals who are no longer part of an organization. Using these accounts may allow the adversary to evade detection, as the original account user will not be present to identify any anomalous activity taking place on their account.(Citation: CISA MFA PrintNightmare) The overlap of permissions for local, domain, and cloud accounts across a network of systems is of concern because the adversary may be able to pivot across accounts and systems to reach a high level of access (i.e., domain or enterprise administrator) to bypass access controls set within the enterprise.(Citation: TechNet Credential Theft)",
         "detect_keywords": [
@@ -1309,7 +1309,7 @@ function applyHost(ctx) {
         "id": "T1566",
         "name": "Phishing",
         "tactic_ids": [
-          "initial-access"
+          "TA0001"
         ],
         "description": "Adversaries may send phishing messages to gain access to victim systems. All forms of phishing are electronically delivered social engineering. Phishing can be targeted, known as spearphishing. In spearphishing, a specific individual, company, or industry will be targeted by the adversary. More generally, adversaries can conduct non-targeted phishing, such as in mass malware spam campaigns. Adversaries may send victims emails containing malicious attachments or links, typically to execute malicious code on victim systems. Phishing may also be conducted via third-party services, like social media platforms. Phishing may also involve social engineering techniques, such as posing as a trusted source, as well as evasive techniques such as removing or manipulating emails or metadata/headers from compromised accounts being abused to send messages (e.g., [Email Hiding Rules](https://attack.mitre.org/techniques/T1564/008)).(Citation: Microsoft OAuth Spam 2022)(Citation: Palo Alto Unit 42 VBA Infostealer 2014) Another way to accomplish this is by [Email Spoofing](https://attack.mitre.org/techniques/T1684/002)(Citation: Proofpoint-spoof) the identity of the sender, which can be used to fool both the human recipient as well as automated security tools,(Citation: cyberproof-double-bounce) or by including the intended target as a party to an existing email thread that includes malicious files or links (i.e., \"thread hijacking\").(Citation: phishing-krebs) Victims may also receive phishing messages that instruct them to call a phone number where they are directed to visit a malicious URL, download malware,(Citation: sygnia Luna Month)(Citation: CISA Remote Monitoring and Management Software) or install adversary-accessible remote management tools onto their computer (i.e., [User Execution](https://attack.mitre.org/techniques/T1204)).(Citation: Unit42 Luna Moth)",
         "detect_keywords": [
@@ -1327,7 +1327,7 @@ function applyHost(ctx) {
         "id": "T1190",
         "name": "Exploit Public-Facing Application",
         "tactic_ids": [
-          "initial-access"
+          "TA0001"
         ],
         "description": "Adversaries may attempt to exploit a weakness in an Internet-facing host or system to initially access a network. The weakness in the system can be a software bug, a temporary glitch, or a misconfiguration. Exploited applications are often websites/web servers, but can also include databases (like SQL), standard services (like SMB or SSH), network device administration and management protocols (like SNMP and Smart Install), and any other system with Internet-accessible open sockets.(Citation: NVD CVE-2016-6662)(Citation: CIS Multiple SMB Vulnerabilities)(Citation: US-CERT TA18-106A Network Infrastructure Devices 2018)(Citation: Cisco Blog Legacy Device Attacks)(Citation: NVD CVE-2014-7169) On ESXi infrastructure, adversaries may exploit exposed OpenSLP services; they may alternatively exploit exposed VMware vCenter servers.(Citation: Recorded Future ESXiArgs Ransomware 2023)(Citation: Ars Technica VMWare Code Execution Vulnerability 2021) Depending on the flaw being exploited, this may also involve [Exploitation for Stealth](https://attack.mitre.org/techniques/T1211) or [Exploitation for Client Execution](https://attack.mitre.org/techniques/T1203). If an application is hosted on cloud-based infrastructure and/or is containerized, then exploiting it may lead to compromise of the underlying instance or container. This can allow an adversary a path to access the cloud or container APIs (e.g., via the [Cloud Instance Metadata API](https://attack.mitre.org/techniques/T1552/005)), exploit container host access via [Escape to Host](https://attack.mitre.org/techniques/T1611), or take advantage of weak identity and access management policies. Adversaries may also exploit edge network infrastructure and related appliances, specifically targeting devices that do not support robust host-based defenses.(Citation: Mandiant Fortinet Zero Day)(Citation: Wired Russia Cyberwar) For websites and databases, the OWASP top 10 and CWE top 25 highlight the most common web-based vulnerabilities.(Citation: OWASP Top 10)(Citation: CWE top 25)",
         "detect_keywords": [
@@ -1346,8 +1346,8 @@ function applyHost(ctx) {
         "id": "T1133",
         "name": "External Remote Services",
         "tactic_ids": [
-          "persistence",
-          "initial-access"
+          "TA0003",
+          "TA0001"
         ],
         "description": "Adversaries may leverage external-facing remote services to initially access and/or persist within a network. Remote services such as VPNs, Citrix, and other access mechanisms allow users to connect to internal enterprise network resources from external locations. There are often remote service gateways that manage connections and credential authentication for these services. Services such as [Windows Remote Management](https://attack.mitre.org/techniques/T1021/006) and [VNC](https://attack.mitre.org/techniques/T1021/005) can also be used externally.(Citation: MacOS VNC software for Remote Desktop) Access to [Valid Accounts](https://attack.mitre.org/techniques/T1078) to use the service is often a requirement, which could be obtained through credential pharming or by obtaining the credentials from users after compromising the enterprise network.(Citation: Volexity Virtual Private Keylogging) Access to remote services may be used as a redundant or persistent access mechanism during an operation. Access may also be gained through an exposed service that doesn’t require authentication. In containerized environments, this may include an exposed Docker API, Kubernetes API server, kubelet, or web application such as the Kubernetes dashboard.(Citation: Trend Micro Exposed Docker Server)(Citation: Unit 42 Hildegard Malware) Adversaries may also establish persistence on network by configuring a Tor hidden service on a compromised system. Adversaries may utilize the tool `ShadowLink` to facilitate the installation and configuration of the Tor hidden service. Tor hidden service is then accessible via the Tor network because `ShadowLink` sets up a .onion address on the compromised system. `ShadowLink` may be used to forward any inbound connections to RDP, allowing the adversaries to have remote access.(Citation: The BadPilot campaign) Adversaries may get `ShadowLink` to persist on a system by masquerading it as an MS Defender application.(Citation: Russian threat actors dig in, prepare to seize on war fatigue)",
         "detect_keywords": [
@@ -1365,7 +1365,7 @@ function applyHost(ctx) {
         "id": "T1059",
         "name": "Command and Scripting Interpreter",
         "tactic_ids": [
-          "execution"
+          "TA0002"
         ],
         "description": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries. These interfaces and languages provide ways of interacting with computer systems and are a common feature across many different platforms. Most systems come with some built-in command-line interface and scripting capabilities, for example, macOS and Linux distributions include some flavor of [Unix Shell](https://attack.mitre.org/techniques/T1059/004) while Windows installations include the [Windows Command Shell](https://attack.mitre.org/techniques/T1059/003) and [PowerShell](https://attack.mitre.org/techniques/T1059/001). There are also cross-platform interpreters such as [Python](https://attack.mitre.org/techniques/T1059/006), as well as those commonly associated with client applications such as [JavaScript](https://attack.mitre.org/techniques/T1059/007) and [Visual Basic](https://attack.mitre.org/techniques/T1059/005). Adversaries may abuse these technologies in various ways as a means of executing arbitrary commands. Commands and scripts can be embedded in [Initial Access](https://attack.mitre.org/tactics/TA0001) payloads delivered to victims as lure documents or as secondary payloads downloaded from an existing C2. Adversaries may also execute commands through interactive terminals/shells, as well as utilize various [Remote Services](https://attack.mitre.org/techniques/T1021) in order to achieve remote Execution.(Citation: Powershell Remote Commands)(Citation: Cisco IOS Software Integrity Assurance - Command History)(Citation: Remote Shell Execution in Python)",
         "detect_keywords": [
@@ -1383,7 +1383,7 @@ function applyHost(ctx) {
         "id": "T1203",
         "name": "Exploitation for Client Execution",
         "tactic_ids": [
-          "execution"
+          "TA0002"
         ],
         "description": "Adversaries may exploit software vulnerabilities in client applications to execute code. Vulnerabilities can exist in software due to unsecure coding practices that can lead to unanticipated behavior. Adversaries can take advantage of certain vulnerabilities through targeted exploitation for the purpose of arbitrary code execution. Oftentimes the most valuable exploits to an offensive toolkit are those that can be used to obtain code execution on a remote system because they can be used to gain access to that system. Users will expect to see files related to the applications they commonly used to do work, so they are a useful target for exploit research and development because of their high utility. Several types exist: ### Browser-based Exploitation Web browsers are a common target through [Drive-by Compromise](https://attack.mitre.org/techniques/T1189) and [Spearphishing Link](https://attack.mitre.org/techniques/T1566/002). Endpoint systems may be compromised through normal web browsing or from certain users being targeted by links in spearphishing emails to adversary controlled sites used to exploit the web browser. These often do not require an action by the user for the exploit to be executed. ### Office Applications Common office and productivity applications such as Microsoft Office are also targeted through [Phishing](https://attack.mitre.org/techniques/T1566). Malicious files will be transmitted directly as attachments or through links to download them. These require the user to open the document or file for the exploit to run. ### Common Third-party Applications Other applications that are commonly seen or are part of the software deployed in a target network may also be used for exploitation. Applications such as Adobe Reader and Flash, which are common in enterprise environments, have been routinely targeted by adversaries attempting to gain access to systems. Depending on the software and nature of the vulnerability, some may be exploited in the browser or require the user to open a file. For instance, some Flash exploits have been delivered as objects within Microsoft Office documents.",
         "detect_keywords": [
@@ -1401,7 +1401,7 @@ function applyHost(ctx) {
         "id": "T1106",
         "name": "Native API",
         "tactic_ids": [
-          "execution"
+          "TA0002"
         ],
         "description": "Adversaries may interact with the native OS application programming interface (API) to execute behaviors. Native APIs provide a controlled means of calling low-level OS services within the kernel, such as those involving hardware/devices, memory, and processes.(Citation: NT API Windows)(Citation: Linux Kernel API) These native APIs are leveraged by the OS during system boot (when other system components are not yet initialized) as well as carrying out tasks and requests during routine operations. Adversaries may abuse these OS API functions as a means of executing behaviors. Similar to [Command and Scripting Interpreter](https://attack.mitre.org/techniques/T1059), the native API and its hierarchy of interfaces provide mechanisms to interact with and utilize various components of a victimized system. Native API functions (such as <code>NtCreateProcess</code>) may be directed invoked via system calls / syscalls, but these features are also often exposed to user-mode applications via interfaces and libraries.(Citation: OutFlank System Calls)(Citation: CyberBit System Calls)(Citation: MDSec System Calls) For example, functions such as the Windows API <code>CreateProcess()</code> or GNU <code>fork()</code> will allow programs and scripts to start other processes.(Citation: Microsoft CreateProcess)(Citation: GNU Fork) This may allow API callers to execute a binary, run a CLI command, load modules, etc. as thousands of similar API functions exist for various system operations.(Citation: Microsoft Win32)(Citation: LIBC)(Citation: GLIBC) Higher level software frameworks, such as Microsoft .NET and macOS Cocoa, are also available to interact with native APIs. These frameworks typically provide language wrappers/abstractions to API functionalities and are designed for ease-of-use/portability of code.(Citation: Microsoft NET)(Citation: Apple Core Services)(Citation: MACOS Cocoa)(Citation: macOS Foundation) Adversaries may use assembly to directly or in-directly invoke syscalls in an attempt to subvert defensive sensors and detection signatures such as user mode API-hooks.(Citation: Redops Syscalls) Adversaries may also attempt to tamper with sensors and defensive tools associated with API monitoring, such as unhooking monitored functions via [Disable or Modify Tools](https://attack.mitre.org/techniques/T1685).",
         "detect_keywords": [
@@ -1417,7 +1417,7 @@ function applyHost(ctx) {
         "id": "T1136",
         "name": "Create Account",
         "tactic_ids": [
-          "persistence"
+          "TA0003"
         ],
         "description": "Adversaries may create an account to maintain access to victim systems.(Citation: Symantec WastedLocker June 2020) With a sufficient level of access, creating such accounts may be used to establish secondary credentialed access that do not require persistent remote access tools to be deployed on the system. Accounts may be created on the local system or within a domain or cloud tenant. In cloud environments, adversaries may create accounts that only have access to specific services, which can reduce the chance of detection.",
         "detect_keywords": [
@@ -1435,7 +1435,7 @@ function applyHost(ctx) {
         "id": "T1505",
         "name": "Server Software Component",
         "tactic_ids": [
-          "persistence"
+          "TA0003"
         ],
         "description": "Adversaries may abuse legitimate extensible development features of servers to establish persistent access to systems. Enterprise server applications may include features that allow developers to write and install software or scripts to extend the functionality of the main application. Adversaries may install malicious components to extend and abuse server applications.(Citation: volexity_0day_sophos_FW)",
         "detect_keywords": [
@@ -1452,8 +1452,8 @@ function applyHost(ctx) {
         "id": "T1098",
         "name": "Account Manipulation",
         "tactic_ids": [
-          "persistence",
-          "privilege-escalation"
+          "TA0003",
+          "TA0004"
         ],
         "description": "Adversaries may manipulate accounts to maintain and/or elevate access to victim systems. Account manipulation may consist of any action that preserves or modifies adversary access to a compromised account, such as modifying credentials or permission groups.(Citation: FireEye SMOKEDHAM June 2021) These actions could also include account activity designed to subvert security policies, such as performing iterative password updates to bypass password duration policies and preserve the life of compromised credentials. In order to create or manipulate accounts, the adversary must already have sufficient permissions on systems or the domain. However, account manipulation may also lead to privilege escalation where modifications grant access to additional roles, permissions, or higher-privileged [Valid Accounts](https://attack.mitre.org/techniques/T1078).",
         "detect_keywords": [
@@ -1471,7 +1471,7 @@ function applyHost(ctx) {
         "id": "T1548",
         "name": "Abuse Elevation Control Mechanism",
         "tactic_ids": [
-          "privilege-escalation"
+          "TA0004"
         ],
         "description": "Adversaries may circumvent mechanisms designed to control privilege elevation to gain higher-level permissions. Most modern systems contain native elevation control mechanisms that are intended to limit privileges that a user can perform on a machine. Authorization has to be granted to specific users in order to perform tasks that can be considered of higher risk.(Citation: TechNet How UAC Works)(Citation: sudo man page 2018) An adversary can perform several methods to take advantage of built-in control mechanisms in order to escalate privileges on a system.(Citation: OSX Keydnap malware)(Citation: Fortinet Fareit)",
         "detect_keywords": [
@@ -1488,7 +1488,7 @@ function applyHost(ctx) {
         "id": "T1068",
         "name": "Exploitation for Privilege Escalation",
         "tactic_ids": [
-          "privilege-escalation"
+          "TA0004"
         ],
         "description": "Adversaries may exploit software vulnerabilities in an attempt to elevate privileges. Exploitation of a software vulnerability occurs when an adversary takes advantage of a programming error in a program, service, or within the operating system software or kernel itself to execute adversary-controlled code. Security constructs such as permission levels will often hinder access to information and use of certain techniques, so adversaries will likely need to perform privilege escalation to include use of software exploitation to circumvent those restrictions. When initially gaining access to a system, an adversary may be operating within a lower privileged process which will prevent them from accessing certain resources on the system. Vulnerabilities may exist, usually in operating system components and software commonly running at higher permissions, that can be exploited to gain higher levels of access on the system. This could enable someone to move from unprivileged or user level permissions to SYSTEM or root permissions depending on the component that is vulnerable. This could also enable an adversary to move from a virtualized environment, such as within a virtual machine or container, onto the underlying host. This may be a necessary step for an adversary compromising an endpoint system that has been properly configured and limits other privilege escalation methods. Adversaries may bring a signed vulnerable driver onto a compromised machine so that they can exploit the vulnerability to execute code in kernel mode. This process is sometimes referred to as Bring Your Own Vulnerable Driver (BYOVD).(Citation: ESET InvisiMole June 2020)(Citation: Unit42 AcidBox June 2020) Adversaries may include the vulnerable driver with files delivered during Initial Access or download it to a compromised system via [Ingress Tool Transfer](https://attack.mitre.org/techniques/T1105) or [Lateral Tool Transfer](https://attack.mitre.org/techniques/T1570).",
         "detect_keywords": [
@@ -1505,8 +1505,8 @@ function applyHost(ctx) {
         "id": "T1055",
         "name": "Process Injection",
         "tactic_ids": [
-          "stealth",
-          "privilege-escalation"
+          "TA0005",
+          "TA0004"
         ],
         "description": "Adversaries may inject code into processes in order to evade process-based defenses as well as possibly elevate privileges. Process injection is a method of executing arbitrary code in the address space of a separate live process. Running code in the context of another process may allow access to the process's memory, system/network resources, and possibly elevated privileges. Execution via process injection may also evade detection from security products since the execution is masked under a legitimate process. There are many different ways to inject code into a process, many of which abuse legitimate functionalities. These implementations exist for every major OS but are typically platform specific. More sophisticated samples may perform multiple process injections to segment modules and further evade detection, utilizing named pipes or other inter-process communication (IPC) mechanisms as a communication channel.",
         "detect_keywords": [
@@ -1523,7 +1523,7 @@ function applyHost(ctx) {
         "id": "T1070",
         "name": "Indicator Removal",
         "tactic_ids": [
-          "stealth"
+          "TA0005"
         ],
         "description": "Adversaries may selectively delete or modify artifacts generated to reduce indications of their presence and blend in with legitimate activity. Rather than broadly removing evidence, adversaries may target specific artifacts that appear anomalous or are likely to draw scrutiny, while leaving sufficient data intact to maintain the appearance of normal system behavior. Artifacts such as command histories, log entries, or file metadata may be altered in ways that align with expected user or system activity. Location, format, and type of artifact (such as command or login history) are often platform-specific, allowing adversaries to tailor modifications that minimize suspicion. These actions may not prevent detection entirely but can delay recognition of malicious activity or reduce the fidelity of alerts by making events appear benign or consistent with routine operations. Additionally, selectively removed or modified artifacts may still be recoverable through deeper forensic analysis, though their absence or alteration can complicate timeline reconstruction and attribution.",
         "detect_keywords": [
@@ -1541,7 +1541,7 @@ function applyHost(ctx) {
         "id": "T1027",
         "name": "Obfuscated Files or Information",
         "tactic_ids": [
-          "stealth"
+          "TA0005"
         ],
         "description": "Adversaries may attempt to make an executable or file difficult to discover or analyze by encrypting, encoding, or otherwise obfuscating its contents on the system or in transit. This is common behavior that can be used across different platforms and the network to evade defenses. Payloads may be compressed, archived, or encrypted in order to avoid detection. These payloads may be used during Initial Access or later to mitigate detection. Sometimes a user's action may be required to open and [Deobfuscate/Decode Files or Information](https://attack.mitre.org/techniques/T1140) for [User Execution](https://attack.mitre.org/techniques/T1204). The user may also be required to input a password to open a password protected compressed/encrypted file that was provided by the adversary.(Citation: Volexity PowerDuke November 2016) Adversaries may also use compressed or archived scripts, such as JavaScript. Portions of files can also be encoded to hide the plain-text strings that would otherwise help defenders with discovery.(Citation: Linux/Cdorked.A We Live Security Analysis) Payloads may also be split into separate, seemingly benign files that only reveal malicious functionality when reassembled.(Citation: Carbon Black Obfuscation Sept 2016) Adversaries may also abuse [Command Obfuscation](https://attack.mitre.org/techniques/T1027/010) to obscure commands executed from payloads or directly via [Command and Scripting Interpreter](https://attack.mitre.org/techniques/T1059). Environment variables, aliases, characters, and other platform/language specific semantics can be used to evade signature based detections and application control mechanisms.(Citation: FireEye Obfuscation June 2017)(Citation: FireEye Revoke-Obfuscation July 2017)(Citation: PaloAlto EncodedCommand March 2017)",
         "detect_keywords": [
@@ -1559,7 +1559,7 @@ function applyHost(ctx) {
         "id": "T1553",
         "name": "Subvert Trust Controls",
         "tactic_ids": [
-          "defense-impairment"
+          "TA0112"
         ],
         "description": "Adversaries may undermine security controls that will either warn users of untrusted activity or prevent execution of untrusted programs. Operating systems and security products may contain mechanisms to identify programs or websites as possessing some level of trust. Examples of such features would include a program being allowed to run because it is signed by a valid code signing certificate, a program prompting the user with a warning because it has an attribute set from being downloaded from the Internet, or getting an indication that you are about to connect to an untrusted site. Adversaries may attempt to subvert these trust mechanisms. The method adversaries use will depend on the specific mechanism they seek to subvert. Adversaries may conduct [File and Directory Permissions Modification](https://attack.mitre.org/techniques/T1222) or [Modify Registry](https://attack.mitre.org/techniques/T1112) in support of subverting these controls.(Citation: SpectorOps Subverting Trust Sept 2017) Adversaries may also create or steal code signing certificates to acquire trust on target systems.(Citation: Securelist Digital Certificates)(Citation: Symantec Digital Certificates)",
         "detect_keywords": [
@@ -1576,7 +1576,7 @@ function applyHost(ctx) {
         "id": "T1003",
         "name": "OS Credential Dumping",
         "tactic_ids": [
-          "credential-access"
+          "TA0006"
         ],
         "description": "Adversaries may attempt to dump credentials to obtain account login and credential material, normally in the form of a hash or a clear text password. Credentials can be obtained from OS caches, memory, or structures.(Citation: Brining MimiKatz to Unix) Credentials can then be used to perform [Lateral Movement](https://attack.mitre.org/tactics/TA0008) and access restricted information. Several of the tools mentioned in associated sub-techniques may be used by both adversaries and professional security testers. Additional custom tools likely exist as well.",
         "detect_keywords": [
@@ -1595,7 +1595,7 @@ function applyHost(ctx) {
         "id": "T1110",
         "name": "Brute Force",
         "tactic_ids": [
-          "credential-access"
+          "TA0006"
         ],
         "description": "Adversaries may use brute force techniques to gain access to accounts when passwords are unknown or when password hashes are obtained.(Citation: TrendMicro Pawn Storm Dec 2020) Without knowledge of the password for an account or set of accounts, an adversary may systematically guess the password using a repetitive or iterative mechanism.(Citation: Dragos Crashoverride 2018) Brute forcing passwords can take place via interaction with a service that will check the validity of those credentials or offline against previously acquired credential data, such as password hashes. Brute forcing credentials may take place at various points during a breach. For example, adversaries may attempt to brute force access to [Valid Accounts](https://attack.mitre.org/techniques/T1078) within a victim environment leveraging knowledge gathered from other post-compromise behaviors such as [OS Credential Dumping](https://attack.mitre.org/techniques/T1003), [Account Discovery](https://attack.mitre.org/techniques/T1087), or [Password Policy Discovery](https://attack.mitre.org/techniques/T1201). Adversaries may also combine brute forcing activity with behaviors such as [External Remote Services](https://attack.mitre.org/techniques/T1133) as part of Initial Access. If an adversary guesses the correct password but fails to login to a compromised account due to location-based conditional access policies, they may change their infrastructure until they match the victim’s location and therefore bypass those policies.(Citation: ReliaQuest Health Care Social Engineering Campaign 2024)",
         "detect_keywords": [
@@ -1613,7 +1613,7 @@ function applyHost(ctx) {
         "id": "T1555",
         "name": "Credentials from Password Stores",
         "tactic_ids": [
-          "credential-access"
+          "TA0006"
         ],
         "description": "Adversaries may search for common password storage locations to obtain user credentials.(Citation: F-Secure The Dukes) Passwords are stored in several places on a system, depending on the operating system or application holding the credentials. There are also specific applications and services that store passwords to make them easier for users to manage and maintain, such as password managers and cloud secrets vaults. Once credentials are obtained, they can be used to perform lateral movement and access restricted information.",
         "detect_keywords": [
@@ -1631,7 +1631,7 @@ function applyHost(ctx) {
         "id": "T1552",
         "name": "Unsecured Credentials",
         "tactic_ids": [
-          "credential-access"
+          "TA0006"
         ],
         "description": "Adversaries may search compromised systems to find and obtain insecurely stored credentials. These credentials can be stored and/or misplaced in many locations on a system, including plaintext files (e.g. [Shell History](https://attack.mitre.org/techniques/T1552/003)), operating system or application-specific repositories (e.g. [Credentials in Registry](https://attack.mitre.org/techniques/T1552/002)), or other specialized files/artifacts (e.g. [Private Keys](https://attack.mitre.org/techniques/T1552/004)).(Citation: Brining MimiKatz to Unix)",
         "detect_keywords": [
@@ -1649,7 +1649,7 @@ function applyHost(ctx) {
         "id": "T1087",
         "name": "Account Discovery",
         "tactic_ids": [
-          "discovery"
+          "TA0007"
         ],
         "description": "Adversaries may attempt to get a listing of valid accounts, usernames, or email addresses on a system or within a compromised environment. This information can help adversaries determine which accounts exist, which can aid in follow-on behavior such as brute-forcing, spear-phishing attacks, or account takeovers (e.g., [Valid Accounts](https://attack.mitre.org/techniques/T1078)). Adversaries may use several methods to enumerate accounts, including abuse of existing tools, built-in commands, and potential misconfigurations that leak account names and roles or permissions in the targeted environment. For examples, cloud environments typically provide easily accessible interfaces to obtain user lists.(Citation: AWS List Users)(Citation: Google Cloud - IAM Servie Accounts List API) On hosts, adversaries can use default [PowerShell](https://attack.mitre.org/techniques/T1059/001) and other command line functionality to identify accounts. Information about email addresses and accounts may also be extracted by searching an infected system’s files.",
         "detect_keywords": [
@@ -1666,7 +1666,7 @@ function applyHost(ctx) {
         "id": "T1082",
         "name": "System Information Discovery",
         "tactic_ids": [
-          "discovery"
+          "TA0007"
         ],
         "description": "An adversary may attempt to get detailed information about the operating system and hardware, including version, patches, hotfixes, service packs, and architecture. Adversaries may use this information to shape follow-on behaviors, including whether or not the adversary fully infects the target and/or attempts specific actions. This behavior is distinct from [Local Storage Discovery](https://attack.mitre.org/techniques/T1680) which is an adversary's discovery of local drive, disks and/or volumes. Tools such as [Systeminfo](https://attack.mitre.org/software/S0096) can be used to gather detailed system information. If running with privileged access, a breakdown of system data can be gathered through the <code>systemsetup</code> configuration tool on macOS. Adversaries may leverage a [Network Device CLI](https://attack.mitre.org/techniques/T1059/008) on network devices to gather detailed system information (e.g. <code>show version</code>).(Citation: US-CERT-TA18-106A) On ESXi servers, threat actors may gather system information from various esxcli utilities, such as `system hostname get` and `system version get`.(Citation: Crowdstrike Hypervisor Jackpotting Pt 2 2021)(Citation: Varonis) Infrastructure as a Service (IaaS) cloud providers such as AWS, GCP, and Azure allow access to instance and virtual machine information via APIs. Successful authenticated API calls can return data such as the operating system platform and status of a particular instance or the model view of a virtual machine.(Citation: Amazon Describe Instance)(Citation: Google Instances Resource)(Citation: Microsoft Virutal Machine API) [System Information Discovery](https://attack.mitre.org/techniques/T1082) combined with information gathered from other forms of discovery and reconnaissance can drive payload development and concealment.(Citation: OSX.FairyTale)(Citation: 20 macOS Common Tools and Techniques)",
         "detect_keywords": [
@@ -1684,7 +1684,7 @@ function applyHost(ctx) {
         "id": "T1046",
         "name": "Network Service Discovery",
         "tactic_ids": [
-          "discovery"
+          "TA0007"
         ],
         "description": "Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure devices, including those that may be vulnerable to remote software exploitation. Common methods to acquire this information include port, vulnerability, and/or wordlist scans using tools that are brought onto a system.(Citation: CISA AR21-126A FIVEHANDS May 2021) Within cloud environments, adversaries may attempt to discover services running on other cloud hosts. Additionally, if the cloud environment is connected to a on-premises environment, adversaries may be able to identify services running on non-cloud systems as well. Within macOS environments, adversaries may use the native Bonjour application to discover services running on other macOS hosts within a network. The Bonjour mDNSResponder daemon automatically registers and advertises a host’s registered services on the network. For example, adversaries can use a mDNS query (such as <code>dns-sd -B _ssh._tcp .</code>) to find other systems broadcasting the ssh service.(Citation: apple doco bonjour description)(Citation: macOS APT Activity Bradley)",
         "detect_keywords": [
@@ -1702,7 +1702,7 @@ function applyHost(ctx) {
         "id": "T1018",
         "name": "Remote System Discovery",
         "tactic_ids": [
-          "discovery"
+          "TA0007"
         ],
         "description": "Adversaries may attempt to get a listing of other systems by IP address, hostname, or other logical identifier on a network that may be used for Lateral Movement from the current system. Functionality could exist within remote access tools to enable this, but utilities available on the operating system could also be used such as [Ping](https://attack.mitre.org/software/S0097), <code>net view</code> using [Net](https://attack.mitre.org/software/S0039), or, on ESXi servers, `esxcli network diag ping`. Adversaries may also analyze data from local host files (ex: <code>C:\\Windows\\System32\\Drivers\\etc\\hosts</code> or <code>/etc/hosts</code>) or other passive means (such as local [Arp](https://attack.mitre.org/software/S0099) cache entries) in order to discover the presence of remote systems in an environment. Adversaries may also target discovery of network infrastructure as well as leverage [Network Device CLI](https://attack.mitre.org/techniques/T1059/008) commands on network devices to gather detailed information about systems within a network (e.g. <code>show cdp neighbors</code>, <code>show arp</code>).(Citation: US-CERT-TA18-106A)(Citation: CISA AR21-126A FIVEHANDS May 2021)",
         "detect_keywords": [
@@ -1720,7 +1720,7 @@ function applyHost(ctx) {
         "id": "T1069",
         "name": "Permission Groups Discovery",
         "tactic_ids": [
-          "discovery"
+          "TA0007"
         ],
         "description": "Adversaries may attempt to discover group and permission settings. This information can help adversaries determine which user accounts and groups are available, the membership of users in particular groups, and which users and groups have elevated permissions. Adversaries may attempt to discover group permission settings in many different ways. This data may provide the adversary with information about the compromised environment that can be used in follow-on activity and targeting.(Citation: CrowdStrike BloodHound April 2018)",
         "detect_keywords": [
@@ -1736,7 +1736,7 @@ function applyHost(ctx) {
         "id": "T1518",
         "name": "Software Discovery",
         "tactic_ids": [
-          "discovery"
+          "TA0007"
         ],
         "description": "Adversaries may attempt to get a listing of software and software versions that are installed on a system or in a cloud environment. Adversaries may use the information from [Software Discovery](https://attack.mitre.org/techniques/T1518) during automated discovery to shape follow-on behaviors, including whether or not the adversary fully infects the target and/or attempts specific actions. Such software may be deployed widely across the environment for configuration management or security reasons, such as [Software Deployment Tools](https://attack.mitre.org/techniques/T1072), and may allow adversaries broad access to infect devices or move laterally. Adversaries may attempt to enumerate software for a variety of reasons, such as figuring out what security measures are present or if the compromised system has a version of software that is vulnerable to [Exploitation for Privilege Escalation](https://attack.mitre.org/techniques/T1068).",
         "detect_keywords": [
@@ -1753,7 +1753,7 @@ function applyHost(ctx) {
         "id": "T1560",
         "name": "Archive Collected Data",
         "tactic_ids": [
-          "collection"
+          "TA0009"
         ],
         "description": "An adversary may compress and/or encrypt data that is collected prior to exfiltration. Compressing the data can help to obfuscate the collected data and minimize the amount of data sent over the network.(Citation: DOJ GRU Indictment Jul 2018) Encryption can be used to hide information that is being exfiltrated from detection or make exfiltration less conspicuous upon inspection by a defender. Both compression and encryption are done prior to exfiltration, and can be performed using a utility, 3rd party library, or custom method.",
         "detect_keywords": [
@@ -1769,7 +1769,7 @@ function applyHost(ctx) {
         "id": "T1530",
         "name": "Data from Cloud Storage",
         "tactic_ids": [
-          "collection"
+          "TA0009"
         ],
         "description": "Adversaries may access data from cloud storage. Many IaaS providers offer solutions for online data object storage such as Amazon S3, Azure Storage, and Google Cloud Storage. Similarly, SaaS enterprise platforms such as Office 365 and Google Workspace provide cloud-based document storage to users through services such as OneDrive and Google Drive, while SaaS application providers such as Slack, Confluence, Salesforce, and Dropbox may provide cloud storage solutions as a peripheral or primary use case of their platform. In some cases, as with IaaS-based cloud storage, there exists no overarching application (such as SQL or Elasticsearch) with which to interact with the stored objects: instead, data from these solutions is retrieved directly though the [Cloud API](https://attack.mitre.org/techniques/T1059/009). In SaaS applications, adversaries may be able to collect this data directly from APIs or backend cloud storage objects, rather than through their front-end application or interface (i.e., [Data from Information Repositories](https://attack.mitre.org/techniques/T1213)). Adversaries may collect sensitive data from these cloud storage solutions. Providers typically offer security guides to help end users configure systems, though misconfigurations are a common problem.(Citation: Amazon S3 Security, 2019)(Citation: Microsoft Azure Storage Security, 2019)(Citation: Google Cloud Storage Best Practices, 2019) There have been numerous incidents where cloud storage has been improperly secured, typically by unintentionally allowing public access to unauthenticated users, overly-broad access by all users, or even access for any anonymous person outside the control of the Identity Access Management system without even needing basic user permissions. This open access may expose various types of sensitive data, such as credit cards, personally identifiable information, or medical records.(Citation: Trend Micro S3 Exposed PII, 2017)(Citation: Wired Magecart S3 Buckets, 2019)(Citation: HIPAA Journal S3 Breach, 2017)(Citation: Rclone-mega-extortion_05_2021) Adversaries may also obtain then abuse leaked credentials from source repositories, logs, or other means as a way to gain access to cloud storage objects.",
         "detect_keywords": [
@@ -1787,7 +1787,7 @@ function applyHost(ctx) {
         "id": "T1114",
         "name": "Email Collection",
         "tactic_ids": [
-          "collection"
+          "TA0009"
         ],
         "description": "Adversaries may target user email to collect sensitive information. Emails may contain sensitive data, including trade secrets or personal information, that can prove valuable to adversaries. Emails may also contain details of ongoing incident response operations, which may allow adversaries to adjust their techniques in order to maintain persistence or evade defenses.(Citation: TrustedSec OOB Communications)(Citation: CISA AA20-352A 2021) Adversaries can collect or forward email from mail servers or clients.",
         "detect_keywords": [
@@ -1805,7 +1805,7 @@ function applyHost(ctx) {
         "id": "T1071",
         "name": "Application Layer Protocol",
         "tactic_ids": [
-          "command-and-control"
+          "TA0011"
         ],
         "description": "Adversaries may communicate using OSI application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server. Adversaries may utilize many different protocols, including those used for web browsing, transferring files, electronic mail, DNS, or publishing/subscribing. For connections that occur internally within an enclave (such as those between a proxy or pivot node and other nodes), commonly used protocols are SMB, SSH, or RDP.(Citation: Mandiant APT29 Eye Spy Email Nov 22)",
         "detect_keywords": [
@@ -1823,7 +1823,7 @@ function applyHost(ctx) {
         "id": "T1102",
         "name": "Web Service",
         "tactic_ids": [
-          "command-and-control"
+          "TA0011"
         ],
         "description": "Adversaries may use an existing, legitimate external Web service as a means for relaying data to/from a compromised system. Popular websites, cloud services, and social media acting as a mechanism for C2 may give a significant amount of cover due to the likelihood that hosts within a network are already communicating with them prior to a compromise. Using common services, such as those offered by Google, Microsoft, or Twitter, makes it easier for adversaries to hide in expected noise.(Citation: Broadcom BirdyClient Microsoft Graph API 2024) Web service providers commonly use SSL/TLS encryption, giving adversaries an added level of protection. Use of Web services may also protect back-end C2 infrastructure from discovery through malware binary analysis while also enabling operational resiliency (since this infrastructure may be dynamically changed).",
         "detect_keywords": [
@@ -1841,7 +1841,7 @@ function applyHost(ctx) {
         "id": "T1090",
         "name": "Proxy",
         "tactic_ids": [
-          "command-and-control"
+          "TA0011"
         ],
         "description": "Adversaries may use a connection proxy to direct network traffic between systems or act as an intermediary for network communications to a command and control server to avoid direct connections to their infrastructure. Many tools exist that enable traffic redirection through proxies or port redirection, including [HTRAN](https://attack.mitre.org/software/S0040), ZXProxy, and ZXPortMap. (Citation: Trend Micro APT Attack Tools) Adversaries use these types of proxies to manage command and control communications, reduce the number of simultaneous outbound network connections, provide resiliency in the face of connection loss, or to ride over existing trusted communications paths between victims to avoid suspicion. Adversaries may chain together multiple proxies to further disguise the source of malicious traffic. Adversaries can also take advantage of routing schemes in Content Delivery Networks (CDNs) to proxy command and control traffic.",
         "detect_keywords": [
@@ -1860,7 +1860,7 @@ function applyHost(ctx) {
         "id": "T1041",
         "name": "Exfiltration Over C2 Channel",
         "tactic_ids": [
-          "exfiltration"
+          "TA0010"
         ],
         "description": "Adversaries may steal data by exfiltrating it over an existing command and control channel. Stolen data is encoded into the normal communications channel using the same protocol as command and control communications.",
         "detect_keywords": [
@@ -1875,7 +1875,7 @@ function applyHost(ctx) {
         "id": "T1567",
         "name": "Exfiltration Over Web Service",
         "tactic_ids": [
-          "exfiltration"
+          "TA0010"
         ],
         "description": "Adversaries may use an existing, legitimate external Web service to exfiltrate data rather than their primary command and control channel. Popular Web services acting as an exfiltration mechanism may give a significant amount of cover due to the likelihood that hosts within a network are already communicating with them prior to compromise. Firewall rules may also already exist to permit traffic to these services. Web service providers also commonly use SSL/TLS encryption, giving adversaries an added level of protection.",
         "detect_keywords": [
@@ -1892,7 +1892,7 @@ function applyHost(ctx) {
         "id": "T1048",
         "name": "Exfiltration Over Alternative Protocol",
         "tactic_ids": [
-          "exfiltration"
+          "TA0010"
         ],
         "description": "Adversaries may steal data by exfiltrating it over a different protocol than that of the existing command and control channel. The data may also be sent to an alternate network location from the main command and control server. Alternate protocols include FTP, SMTP, HTTP/S, DNS, SMB, or any other network protocol not being used as the main command and control channel. Adversaries may also opt to encrypt and/or obfuscate these alternate channels. [Exfiltration Over Alternative Protocol](https://attack.mitre.org/techniques/T1048) can be done using various common operating system utilities such as [Net](https://attack.mitre.org/software/S0039)/SMB or FTP.(Citation: Palo Alto OilRig Oct 2016) On macOS and Linux <code>curl</code> may be used to invoke protocols such as HTTP/S or FTP/S to exfiltrate data from a system.(Citation: 20 macOS Common Tools and Techniques) Many IaaS and SaaS platforms (such as Microsoft Exchange, Microsoft SharePoint, GitHub, and AWS S3) support the direct download of files, emails, source code, and other sensitive information via the web console or [Cloud API](https://attack.mitre.org/techniques/T1059/009).",
         "detect_keywords": [
@@ -1909,7 +1909,7 @@ function applyHost(ctx) {
         "id": "T1485",
         "name": "Data Destruction",
         "tactic_ids": [
-          "impact"
+          "TA0040"
         ],
         "description": "Adversaries may destroy data and files on specific systems or in large numbers on a network to interrupt availability to systems, services, and network resources. Data destruction is likely to render stored data irrecoverable by forensic techniques through overwriting files or data on local and remote drives.(Citation: Symantec Shamoon 2012)(Citation: FireEye Shamoon Nov 2016)(Citation: Palo Alto Shamoon Nov 2016)(Citation: Kaspersky StoneDrill 2017)(Citation: Unit 42 Shamoon3 2018)(Citation: Talos Olympic Destroyer 2018) Common operating system file deletion commands such as <code>del</code> and <code>rm</code> often only remove pointers to files without wiping the contents of the files themselves, making the files recoverable by proper forensic methodology. This behavior is distinct from [Disk Content Wipe](https://attack.mitre.org/techniques/T1561/001) and [Disk Structure Wipe](https://attack.mitre.org/techniques/T1561/002) because individual files are destroyed rather than sections of a storage disk or the disk's logical structure. Adversaries may attempt to overwrite files and directories with randomly generated data to make it irrecoverable.(Citation: Kaspersky StoneDrill 2017)(Citation: Unit 42 Shamoon3 2018) In some cases politically oriented image files have been used to overwrite data.(Citation: FireEye Shamoon Nov 2016)(Citation: Palo Alto Shamoon Nov 2016)(Citation: Kaspersky StoneDrill 2017) To maximize impact on the target organization in operations where network-wide availability interruption is the goal, malware designed for destroying data may have worm-like features to propagate across a network by leveraging additional techniques like [Valid Accounts](https://attack.mitre.org/techniques/T1078), [OS Credential Dumping](https://attack.mitre.org/techniques/T1003), and [SMB/Windows Admin Shares](https://attack.mitre.org/techniques/T1021/002).(Citation: Symantec Shamoon 2012)(Citation: FireEye Shamoon Nov 2016)(Citation: Palo Alto Shamoon Nov 2016)(Citation: Kaspersky StoneDrill 2017)(Citation: Talos Olympic Destroyer 2018). In cloud environments, adversaries may leverage access to delete cloud storage objects, machine images, database instances, and other infrastructure crucial to operations to damage an organization or their customers.(Citation: Data Destruction - Threat Post)(Citation: DOJ - Cisco Insider) Similarly, they may delete virtual machines from on-prem virtualized environments.",
         "detect_keywords": [
@@ -1928,7 +1928,7 @@ function applyHost(ctx) {
         "id": "T1486",
         "name": "Data Encrypted for Impact",
         "tactic_ids": [
-          "impact"
+          "TA0040"
         ],
         "description": "Adversaries may encrypt data on target systems or on large numbers of systems in a network to interrupt availability to system and network resources. They can attempt to render stored data inaccessible by encrypting files or data on local and remote drives and withholding access to a decryption key. This may be done in order to extract monetary compensation from a victim in exchange for decryption or a decryption key (ransomware) or to render data permanently inaccessible in cases where the key is not saved or transmitted.(Citation: US-CERT Ransomware 2016)(Citation: FireEye WannaCry 2017)(Citation: US-CERT NotPetya 2017)(Citation: US-CERT SamSam 2018) In the case of ransomware, it is typical that common user files like Office documents, PDFs, images, videos, audio, text, and source code files will be encrypted (and often renamed and/or tagged with specific file markers). Adversaries may need to first employ other behaviors, such as [File and Directory Permissions Modification](https://attack.mitre.org/techniques/T1222) or [System Shutdown/Reboot](https://attack.mitre.org/techniques/T1529), in order to unlock and/or gain access to manipulate these files.(Citation: CarbonBlack Conti July 2020) In some cases, adversaries may encrypt critical system files, disk partitions, and the MBR.(Citation: US-CERT NotPetya 2017) Adversaries may also encrypt virtual machines hosted on ESXi or other hypervisors.(Citation: Crowdstrike Hypervisor Jackpotting Pt 2 2021) To maximize impact on the target organization, malware designed for encrypting data may have worm-like features to propagate across a network by leveraging other attack techniques like [Valid Accounts](https://attack.mitre.org/techniques/T1078), [OS Credential Dumping](https://attack.mitre.org/techniques/T1003), and [SMB/Windows Admin Shares](https://attack.mitre.org/techniques/T1021/002).(Citation: FireEye WannaCry 2017)(Citation: US-CERT NotPetya 2017) Encryption malware may also leverage [Internal Defacement](https://attack.mitre.org/techniques/T1491/001), such as changing victim wallpapers or ESXi server login messages, or otherwise intimidate victims by sending ransom notes or other messages to connected printers (known as \"print bombing\").(Citation: NHS Digital Egregor Nov 2020)(Citation: Varonis) In cloud environments, storage objects within compromised accounts may also be encrypted.(Citation: Rhino S3 Ransomware Part 1) For example, in AWS environments, adversaries may leverage services such as AWS’s Server-Side Encryption with Customer Provided Keys (SSE-C) to encrypt data.(Citation: Halcyon AWS Ransomware 2025)",
         "detect_keywords": [
@@ -1945,7 +1945,7 @@ function applyHost(ctx) {
         "id": "T1490",
         "name": "Inhibit System Recovery",
         "tactic_ids": [
-          "impact"
+          "TA0040"
         ],
         "description": "Adversaries may delete or remove built-in data and turn off services designed to aid in the recovery of a corrupted system to prevent recovery.(Citation: Talos Olympic Destroyer 2018)(Citation: FireEye WannaCry 2017) This may deny access to available backups and recovery options. Operating systems may contain features that can help fix corrupted systems, such as a backup catalog, volume shadow copies, and automatic repair features. Adversaries may disable or delete system recovery features to augment the effects of [Data Destruction](https://attack.mitre.org/techniques/T1485) and [Data Encrypted for Impact](https://attack.mitre.org/techniques/T1486).(Citation: Talos Olympic Destroyer 2018)(Citation: FireEye WannaCry 2017) Furthermore, adversaries may disable recovery notifications, then corrupt backups.(Citation: disable_notif_synology_ransom) A number of native Windows utilities have been used by adversaries to disable or delete system recovery features: * <code>vssadmin.exe</code> can be used to delete all volume shadow copies on a system - <code>vssadmin.exe delete shadows /all /quiet</code> * [Windows Management Instrumentation](https://attack.mitre.org/techniques/T1047) can be used to delete volume shadow copies - <code>wmic shadowcopy delete</code> * <code>wbadmin.exe</code> can be used to delete the Windows Backup Catalog - <code>wbadmin.exe delete catalog -quiet</code> * <code>bcdedit.exe</code> can be used to disable automatic Windows recovery features by modifying boot configuration data - <code>bcdedit.exe /set {default} bootstatuspolicy ignoreallfailures & bcdedit /set {default} recoveryenabled no</code> * <code>REAgentC.exe</code> can be used to disable Windows Recovery Environment (WinRE) repair/recovery options of an infected system * <code>diskshadow.exe</code> can be used to delete all volume shadow copies on a system - <code>diskshadow delete shadows all</code> (Citation: Diskshadow) (Citation: Crytox Ransomware) On network devices, adversaries may leverage [Disk Wipe](https://attack.mitre.org/techniques/T1561) to delete backup firmware images and reformat the file system, then [System Shutdown/Reboot](https://attack.mitre.org/techniques/T1529) to reload the device. Together this activity may leave network devices completely inoperable and inhibit recovery operations. On ESXi servers, adversaries may delete or encrypt snapshots of virtual machines to support [Data Encrypted for Impact](https://attack.mitre.org/techniques/T1486), preventing them from being leveraged as backups (e.g., via ` vim-cmd vmsvc/snapshot.removeall`).(Citation: Cybereason) Adversaries may also delete “online” backups that are connected to their network – whether via network storage media or through folders that sync to cloud services.(Citation: ZDNet Ransomware Backups 2020) In cloud environments, adversaries may disable versioning and backup policies and delete snapshots, database backups, machine images, and prior versions of objects designed to be used in disaster recovery scenarios.(Citation: Dark Reading Code Spaces Cyber Attack)(Citation: Rhino Security Labs AWS S3 Ransomware)",
         "detect_keywords": [
@@ -1963,7 +1963,7 @@ function applyHost(ctx) {
         "id": "T1489",
         "name": "Service Stop",
         "tactic_ids": [
-          "impact"
+          "TA0040"
         ],
         "description": "Adversaries may stop or disable services on a system to render those services unavailable to legitimate users. Stopping critical services or processes can inhibit or stop response to an incident or aid in the adversary's overall objectives to cause damage to the environment.(Citation: Talos Olympic Destroyer 2018)(Citation: Novetta Blockbuster) Adversaries may accomplish this by disabling individual services of high importance to an organization, such as <code>MSExchangeIS</code>, which will make Exchange content inaccessible.(Citation: Novetta Blockbuster) In some cases, adversaries may stop or disable many or all services to render systems unusable.(Citation: Talos Olympic Destroyer 2018) Services or processes may not allow for modification of their data stores while running. Adversaries may stop services or processes in order to conduct [Data Destruction](https://attack.mitre.org/techniques/T1485) or [Data Encrypted for Impact](https://attack.mitre.org/techniques/T1486) on the data stores of services like Exchange and SQL Server, or on virtual machines hosted on ESXi infrastructure.(Citation: SecureWorks WannaCry Analysis)(Citation: Crowdstrike Hypervisor Jackpotting Pt 2 2021) Threat actors may also disable or stop service in cloud environments. For example, by leveraging the `DisableAPIServiceAccess` API in AWS, a threat actor may prevent the service from creating service-linked roles on new accounts in the AWS Organization.(Citation: Datadog Security Labs Cloud Persistence 2025)(Citation: AWS DisableAWSServiceAccess)",
         "detect_keywords": [
@@ -1981,7 +1981,7 @@ function applyHost(ctx) {
         "id": "T1491",
         "name": "Defacement",
         "tactic_ids": [
-          "impact"
+          "TA0040"
         ],
         "description": "Adversaries may modify visual content available internally or externally to an enterprise network, thus affecting the integrity of the original content. Reasons for [Defacement](https://attack.mitre.org/techniques/T1491) include delivering messaging, intimidation, or claiming (possibly false) credit for an intrusion. Disturbing or offensive images may be used as a part of [Defacement](https://attack.mitre.org/techniques/T1491) in order to cause user discomfort, or to pressure compliance with accompanying messages.",
         "detect_keywords": [
@@ -2720,6 +2720,30 @@ function applyHost(ctx) {
   const SNIPPET_MAX = 200
   const SNIPPETS_PER_HIT = 4
 
+  // 扫描与研判都自动跑，没有人工按钮：
+  //   扫描是增量的（scans[sid].maxSeq），没有新事件时不落盘 —— 否则每 20 秒
+  //   白写一次上百 KB 的矩阵文件。
+  //   研判按批送给模型，JUDGE_BATCH 是单批上限：几十条疑似一次灌进去会淹没结论。
+  const AUTO_SCAN_MS = 20000
+  const AUTO_JUDGE_MS = 15000
+  const JUDGE_BATCH = 8
+  const JUDGE_SAMPLES = 2
+  // 够一批才交出去，且两批之间至少隔这么久。不加这两道闸的话，在「正在开发
+  // 这个插件的会话」里会变成每 90 秒唤醒一次模型 —— 扫描对象就是产生噪音的源头，
+  // 队列永远排不空，判定请求会无休止地打断开发者。
+  const JUDGE_MIN = 6
+  const JUDGE_STALE_MS = 600000
+  const JUDGE_COOLDOWN_MS = 300000
+  // sentAt 是**租约**不是终态：唤醒模型可能根本没被接手（会话在忙、消息丢了）。
+  // 超过这个时间还没有结论就把 sentAt 清掉重新排队，否则那几条会永远停在
+  // 「模型研判中」——既不会被重送，也不会被判。
+  const JUDGE_LEASE_MS = 900000
+  const LOG_MAX = 120
+
+  function isFresh(item, now) {
+    return !item.sentAt || (now - item.sentAt > JUDGE_LEASE_MS)
+  }
+
   function blankStore() {
     return {
       version: STORE_VERSION,
@@ -2729,6 +2753,12 @@ function applyHost(ctx) {
       scans: {},
       // matrix[frameworkId][techniqueId][sessionId] = hit
       matrix: {},
+      // 被标成「非目标」的会话：不再扫描、已有记录也清掉。
+      // 存在的理由很具体：开发这个插件的工作区里，对话本身就在不停命中框架关键词
+      // （我写一行注释含「主机名」就造出一个 T1082 桶），噪音会盖过真实目标数据。
+      ignoreSessions: [],
+      log: [],
+      logSeq: 0,
       meta: { lastError: null, lastScanAt: 0, scannedSessions: 0 },
     }
   }
@@ -2745,8 +2775,17 @@ function applyHost(ctx) {
       kind: '',
       snippets: [],
       matched: [],
+      // 这条命中打过谁：URL / IP[:端口] / 主机名 / nmap -p 端口表。面板上直接显示。
+      targets: [],
       confidence: 'suspected',
       confirmedAt: 0,
+      // 自动研判：needsJudge 由扫描置位，sentAt 防重送，judgedAt 表示已定论。
+      // decidedBy 记「谁定的」：model（AI 自动标）或 human（面板里手动点）。
+      needsJudge: true,
+      sentAt: 0,
+      judgedAt: 0,
+      decidedBy: '',
+      reason: '',
     }
   }
 
@@ -2872,6 +2911,9 @@ function applyHost(ctx) {
       }
       if (parsed.scans && typeof parsed.scans === 'object') store.scans = parsed.scans
       if (parsed.matrix && typeof parsed.matrix === 'object') store.matrix = parsed.matrix
+      if (Array.isArray(parsed.ignoreSessions)) store.ignoreSessions = parsed.ignoreSessions.map(String)
+      if (Array.isArray(parsed.log)) store.log = parsed.log.slice(-LOG_MAX)
+      if (typeof parsed.logSeq === 'number') store.logSeq = parsed.logSeq
       if (parsed.meta && typeof parsed.meta === 'object') {
         store.meta.lastScanAt = Number(parsed.meta.lastScanAt) || 0
         store.meta.scannedSessions = Number(parsed.meta.scannedSessions) || 0
@@ -2897,7 +2939,13 @@ function applyHost(ctx) {
         updatedAt: store.updatedAt,
         scans: store.scans,
         matrix: store.matrix,
-        meta: { lastScanAt: store.meta.lastScanAt, scannedSessions: store.meta.scannedSessions },
+        ignoreSessions: store.ignoreSessions || [],
+        log: (store.log || []).slice(-LOG_MAX),
+        logSeq: store.logSeq || 0,
+        meta: {
+          lastScanAt: store.meta.lastScanAt,
+          scannedSessions: store.meta.scannedSessions,
+        },
       }
       await fs.writeText(target, JSON.stringify(payload, null, 2))
       return true
@@ -2910,6 +2958,18 @@ function applyHost(ctx) {
   // ── 会话事件 -> 操作项 ────────────────────────────────────────────────────
   // 一次「攻击操作」= 一条用户消息 / 一次模型回复 / 一次工具调用或结果。
   // 这是矩阵卡片能对应到的最小可读单位，也是时间线的刻度。
+  //
+  // 但插件**自己的产出不能进矩阵**，否则是自反馈：判定 reason 里必然引用被命中的
+  // 关键词（「`rce` 是 source 的子串」），研判请求正文里又带着「命中词：…」清单，
+  // 下一轮扫描把它们当成新命中，于是同一批关键词被反复放大。
+  // 实测污染面：matrix_label 出现在 25 个桶的证据里，研判正文出现在 6 个桶里。
+  // 残留（已知、未处理）：判定过程中模型自己写的分析文本没有可靠标记可认，
+  // 只能靠「别在开发这个插件的会话里依赖覆盖率」这条使用纪律回避。
+  const SELF_TOOLS = ['matrix_label']
+  const SELF_PROMPT = '【攻击矩阵 · 自动研判】'
+  function isSelfTool(name) { return SELF_TOOLS.indexOf(String(name || '')) >= 0 }
+  function isSelfPrompt(text) { return String(text || '').indexOf(SELF_PROMPT) >= 0 }
+
   function activitiesOf(session) {
     let events = []
     try { events = session.snapshotEvents() } catch (e) { return [] }
@@ -2931,15 +2991,17 @@ function applyHost(ctx) {
       const d = ev.data
       if (ev.type === 'user/message') {
         const text = textOfContent(d.content)
-        if (text.trim()) out.push({ kind: 'user', seq: seq, at: at, text: text, label: '用户消息' })
+        if (text.trim() && !isSelfPrompt(text)) out.push({ kind: 'user', seq: seq, at: at, text: text, label: '用户消息' })
       } else if (ev.type === 'assistant/message') {
         const text = textOfContent(d.message && d.message.content)
         if (text.trim()) out.push({ kind: 'assistant', seq: seq, at: at, text: text, label: '模型回复' })
       } else if (ev.type === 'tool/call') {
+        if (isSelfTool(d.name)) continue
         out.push({ kind: 'tool', seq: seq, at: at, text: String(d.name || '') + ' ' + String(d.arguments || ''), label: '工具调用 ' + String(d.name || '') })
       } else if (ev.type === 'tool/result') {
         const cid = String((d.message && d.message.source && d.message.source.callId) || '')
         const c = calls[cid]
+        if (c && isSelfTool(c.name)) continue
         out.push({
           kind: 'tool',
           seq: seq,
@@ -2965,9 +3027,82 @@ function applyHost(ctx) {
     return id.length > 14 ? id.slice(0, 14) : id
   }
 
+  // ── 目标提取 ──────────────────────────────────────────────────────────────
+  // 时间线和攻击操作日志要能一眼看出「打的是谁」：光有技术点 ID 没用，
+  // 红队回溯时要的是具体目标。所以从操作文本里抽出 URL / IP[:端口] / 主机名 / nmap 的 -p 端口表。
+  // 只做保守提取：宁可少列，不要把随机数字当端口刷屏。
+  const RE_URL = /\bhttps?:\/\/[^\s"'`,;)<>\\]+/gi
+  const RE_IPV4 = /\b(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?\b/g
+  const RE_HOST = /\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:com|cn|net|org|io|cc|dev|app|xyz|top|info|biz|me|tv|cloud|site|online|tech|store|shop|link|live|fun|pro|work|space|website|host|press|wiki|edu|gov|mil|int|ai|sh|de|jp|uk|fr|ru|us|ca|au|nl|se|it|es|br|in|kr|tw|hk|sg|local|internal|lan)\b/gi
+  // nmap 风格的端口表：`-p 8002,8003,8004,11434` / `-p 1-1024`
+  const RE_PORTLIST = /(?:^|\s)-p\s+([0-9][0-9,\-]{0,80})/i
+  const TARGETS_MAX = 12
+
+  function targetsIn(text) {
+    const s = String(text === undefined || text === null ? '' : text)
+    if (!s) return []
+    const out = []
+    function add(v) {
+      const t = String(v || '').trim()
+      if (!t || t.length > 80) return
+      if (out.indexOf(t) >= 0) return
+      if (out.length < TARGETS_MAX) out.push(t)
+    }
+    let m
+    RE_URL.lastIndex = 0
+    while ((m = RE_URL.exec(s))) add(m[0])
+    RE_IPV4.lastIndex = 0
+    while ((m = RE_IPV4.exec(s))) add(m[0])
+    RE_HOST.lastIndex = 0
+    while ((m = RE_HOST.exec(s))) add(m[0].toLowerCase())
+    const pl = RE_PORTLIST.exec(s)
+    if (pl && pl[1]) add('端口 ' + pl[1])
+    return out
+  }
+
+  function mergeTargets(hit, list) {
+    if (!Array.isArray(list) || list.length === 0) return
+    if (!Array.isArray(hit.targets)) hit.targets = []
+    for (const t of list) {
+      if (hit.targets.indexOf(t) >= 0) continue
+      if (hit.targets.length >= TARGETS_MAX) return
+      hit.targets.push(t)
+    }
+  }
+
+  // 读的时候兜底：加 targets 字段之前扫出来的桶没有它，就从留存的证据片段里现取。
+  // 这样不必为了看目标而重扫 —— 重扫会把已有的判定结论一起丢掉。
+  function hitTargets(h) {
+    if (Array.isArray(h.targets) && h.targets.length) return h.targets
+    let s = ''
+    for (const x of (h.snippets || [])) s += ' ' + (x.text || '')
+    return targetsIn(s)
+  }
+
   // ── 匹配 ──────────────────────────────────────────────────────────────────
-  // 关键词表是扁平的，直接对haystack做 indexOf：一次操作 × 全部关键词。
+  // 关键词表是扁平的，直接对 haystack 做匹配：一次操作 × 全部关键词。
   // 关键词总量在几百这个量级，实时扫描足够快，不值得上倒排索引。
+  //
+  // 但**必须带词边界**。裸 indexOf 实测造出过两个巨型假阳性：
+  //   `rce` 命中 source / resource（单桶 395 次），`dos` 命中 todos（单桶 147 次）。
+  // 含 CJK 的关键词不能用词边界（中文没有词边界），仍走子串匹配。
+  const KW_ASCII = /^[\x20-\x7e]+$/
+  const kwRegexCache = {}
+
+  function kwHit(hay, kw) {
+    let re = kwRegexCache[kw]
+    if (re === undefined) {
+      if (!KW_ASCII.test(kw)) re = null
+      else {
+        const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        re = new RegExp('(^|[^a-z0-9])' + esc + '($|[^a-z0-9])', 'i')
+      }
+      kwRegexCache[kw] = re
+    }
+    if (re === null) return hay.indexOf(kw) >= 0
+    return re.test(hay)
+  }
+
   function matchFrameworks(text) {
     const hay = lower(text)
     if (!hay) return []
@@ -2977,7 +3112,7 @@ function applyHost(ctx) {
         let score = 0
         const hit = []
         for (const kw of tech.detect_keywords) {
-          if (kw && hay.indexOf(kw) >= 0) { score++; hit.push(kw) }
+          if (kw && kwHit(hay, kw)) { score++; hit.push(kw) }
         }
         if (score > 0) found.push({ frameworkId: fw.id, techniqueId: tech.id, keywords: hit, score: score })
       }
@@ -3023,6 +3158,8 @@ function applyHost(ctx) {
     for (const session of sessions) {
       const sid = String(session.id || '')
       if (!sid) continue
+      // 非目标会话：连水位都不碰，直接跳过。
+      if ((store.ignoreSessions || []).indexOf(sid) >= 0) continue
       const title = sessionTitleOf(session)
       const acts = activitiesOf(session)
       if (acts.length === 0) continue
@@ -3044,13 +3181,25 @@ function applyHost(ctx) {
           if (!hit) { hit = blankHit(sid, title); bucket[sid] = hit }
           hit.sessionTitle = title
           hit.occurrences += 1
+          // 扫描只负责「排进待判定队列」：第一次命中、或已定论之后又出现新操作，
+          // 都重新排队等模型判定（decidedBy 为空 = 还没人下过结论）。
+          if (hit.confidence !== 'confirmed' && !hit.judgedAt) { hit.needsJudge = true; hit.sentAt = 0 }
           if (!hit.firstAt || act.at < hit.firstAt) hit.firstAt = act.at
           if (act.at > hit.lastAt) hit.lastAt = act.at
           if (act.kind === 'tool') hit.kind = 'tool'
           else if (!hit.kind) hit.kind = act.kind
           for (const kw of m.keywords) if (hit.matched.indexOf(kw) < 0 && hit.matched.length < 12) hit.matched.push(kw)
+          mergeTargets(hit, targetsIn(act.text))
+          // 证据片段保留策略：最早的 2 条 + **滚动保留最新的 2 条**。
+          // 原来只留最早的 4 条 —— 于是判定者永远看不到后半段发生了什么。
+          // 实测踩过：一次未授权的模型创建/删除发生在很靠后的位置，判定时根本看不到，
+          // 那次战果就没被记上。前面两条留着是为了保住「这条桶从什么开始」。
+          const snip = { at: act.at, seq: act.seq, kind: act.kind, label: act.label, text: clip(act.text, SNIPPET_MAX) }
           if (hit.snippets.length < SNIPPETS_PER_HIT) {
-            hit.snippets.push({ at: act.at, seq: act.seq, kind: act.kind, label: act.label, text: clip(act.text, SNIPPET_MAX) })
+            hit.snippets.push(snip)
+          } else {
+            hit.snippets[SNIPPETS_PER_HIT - 2] = hit.snippets[SNIPPETS_PER_HIT - 1]
+            hit.snippets[SNIPPETS_PER_HIT - 1] = snip
           }
         }
       }
@@ -3061,16 +3210,325 @@ function applyHost(ctx) {
       }
     }
 
-    store.updatedAt = nowMs()
-    store.meta.lastScanAt = store.updatedAt
     store.meta.scannedSessions = scannedSessions
-    const saved = await writeStore(store)
-    if (!saved && !store.meta.lastError) store.meta.lastError = '写入失败（未知原因）'
+    // 没有新事件就不落盘。矩阵文件是百 KB 级，20 秒白写一次纯属浪费 I/O；
+    // lastScanAt 的含义因此是「最近一次扫到新内容的时刻」，面板上按这个措辞显示。
+    const changed = touched > 0 || opts.reset === true || newMatches > 0
+    let saved = true
+    if (changed) {
+      store.updatedAt = nowMs()
+      store.meta.lastScanAt = store.updatedAt
+      saved = await writeStore(store)
+      if (!saved && !store.meta.lastError) store.meta.lastError = '写入失败（未知原因）'
+    }
 
     return {
-      ok: true, saved: saved, store: store, workspace: w,
+      ok: true, saved: saved, changed: changed, store: store, workspace: w,
       stats: { sessions: sessions.length, scannedSessions: scannedSessions, newMatches: newMatches, touchedSessions: touched },
     }
+  }
+
+  // ── 自动扫描与自动研判 ────────────────────────────────────────────────────
+  // 面板上没有「扫描」按钮：host 按节拍自己扫，自己把疑似交给模型定论。
+  // 结论只能有两个来源 —— 模型（matrix_label，AI 自动标）或人在面板上手动点
+  // （confirm / ignore）。扫描永远只负责「排进队列」，不自己下结论。
+  let scanBusy = false
+  let judgeBusy = false
+  let lastHandoffAt = 0
+  let rememberedAgent = null
+  const autoScanState = { at: 0, changedAt: 0, sessions: 0, matches: 0 }
+
+  // 所有「读整份 store -> 改 -> 整份写回」的路径都必须串行。
+  // 不串行会丢更新：注册日志那次就是这样被同时进行的扫描覆盖掉的 ——
+  // 两个异步链各自读了同一份旧数据，后写的把先写的改动整段抹掉。
+  let storeChain = Promise.resolve()
+  function withStore(fn) {
+    const run = storeChain.then(function () { return fn() }, function () { return fn() })
+    storeChain = run.then(function () {}, function () {})
+    return run
+  }
+
+  function logTo(store, level, text) {
+    store.logSeq = (store.logSeq || 0) + 1
+    store.log.push({ seq: store.logSeq, at: nowMs(), level: level, text: String(text).slice(0, 1200) })
+    if (store.log.length > LOG_MAX) store.log = store.log.slice(store.log.length - LOG_MAX)
+  }
+
+  // 待判定 = 还没有人下过结论的疑似命中。
+  // 旧数据没有 judgedAt/decidedBy 这两个字段，判据里按「未判定」处理 ——
+  // 于是升级后第一轮扫描就会把这批历史疑似全部排进队列，不需要迁移脚本。
+  function pendingItems(store) {
+    const out = []
+    for (const fw of FRAMEWORKS) {
+      const bucket = store.matrix[fw.id] || {}
+      for (const tech of fw.techniques) {
+        const hits = bucket[tech.id] || {}
+        for (const sid of Object.keys(hits)) {
+          const h = hits[sid]
+          if (!h || h.confidence === 'confirmed' || h.judgedAt) continue
+          out.push({
+            frameworkId: fw.id, techniqueId: tech.id, techniqueName: tech.name,
+            sessionId: sid, sessionTitle: h.sessionTitle,
+            firstAt: h.firstAt || 0, lastAt: h.lastAt || 0, occurrences: h.occurrences || 0,
+            matched: (h.matched || []).slice(0, 6),
+            samples: (h.snippets || []).slice(-JUDGE_SAMPLES).map(function (s) { return clip(s.text, 300) }),
+            sentAt: h.sentAt || 0,
+          })
+        }
+      }
+    }
+    // 命中多的、近的先判：信息量大的先定论。
+    out.sort(function (a, b) { return (b.occurrences - a.occurrences) || (b.lastAt - a.lastAt) })
+    return out
+  }
+
+  function judgeRules() {
+    const L = []
+    L.push('你的任务：给下面每条「疑似命中」下结论，逐条调用 matrix_label 登记。')
+    L.push('')
+    L.push('三种结论：')
+    L.push('1. confirmed —— **已经实现、已经验证**：对话里有做成的证据，例如利用成功、拿到回显/shell/文件内容、PoC 跑通、注入或越权确实生效、拿到了本不该拿到的数据。')
+    L.push('2. suspected —— 只是提及、计划、讨论，或者尝试过但没有成功的证据。')
+    L.push('3. rejected —— 误报：命中的其实是正常开发或与目标无关的内容。')
+    L.push('')
+    L.push('判定纪律（这几条决定了覆盖率可不可信）：')
+    L.push('- 只有「做成了」才算 confirmed。命令写出来了、工具被调用了，但结果没证明成功 —— 那是 suspected。')
+    L.push('- 关键看工具结果：报错、权限拒绝、404、连接超时、空结果都是**没做成**。')
+    L.push('- 拿不准就 suspected。覆盖率虚高比缺项更有害。')
+    L.push('- reason 要写你实际看到的内容，不要写「关键词匹配到了」这种同义反复。')
+    L.push('')
+    L.push('每条都要调一次 matrix_label，不要只在回复里写结论。')
+    return L.join('\n')
+  }
+
+  function buildJudgePrompt(workspace, items) {
+    const L = []
+    L.push('【攻击矩阵 · 自动研判】工作区：' + (workspace.path || workspace.title || workspace.id))
+    L.push('')
+    L.push(judgeRules())
+    L.push('')
+    L.push('待判定 ' + items.length + ' 条：')
+    for (const it of items) {
+      L.push('')
+      L.push('- ' + it.frameworkId + ' / ' + it.techniqueId + ' ' + it.techniqueName)
+      L.push('  会话：' + (it.sessionTitle || '') + '（sessionId=' + it.sessionId + '）')
+      L.push('  命中 ' + it.occurrences + ' 次，' + fmtTime(it.firstAt) + ' → ' + fmtTime(it.lastAt))
+      L.push('  命中词：' + (it.matched || []).join('、'))
+      for (const s of it.samples) L.push('  证据：' + s)
+    }
+    return L.join('\n')
+  }
+
+  function findAgent() {
+    const agents = ctx.get('agents')
+    if (!agents) return null
+    try {
+      if (typeof agents.currentInitiator === 'function') {
+        const a = agents.currentInitiator()
+        if (a) { rememberedAgent = a; return a }
+      }
+      // 定时器回调里没有驱动链，currentInitiator() 必然是空的。这时候按
+      // 「哪个根会话属于当前工作区」来认 —— 那才是该收到研判请求的会话。
+      // 早先这里只认 roots().length === 1，多个工作区时会直接放弃，
+      // 结果就是扫描一直在跑、判定请求一条都发不出去。
+      const roots = typeof agents.roots === 'function' ? agents.roots() : []
+      if (Array.isArray(roots) && roots.length) {
+        const w = currentWorkspace()
+        const reg = workspaceRegistry()
+        let ids = []
+        try {
+          const full = w && reg && typeof reg.get === 'function' ? reg.get(w.id) : null
+          ids = full && Array.isArray(full.sessionIds) ? full.sessionIds.map(String) : []
+        } catch (e) {}
+        for (const a of roots) if (a && ids.indexOf(String(a.id)) >= 0) { rememberedAgent = a; return a }
+        if (roots.length === 1) { rememberedAgent = roots[0]; return roots[0] }
+      }
+    } catch (e) {}
+    return rememberedAgent
+  }
+
+  async function handoffToModel(store, workspace, items) {
+    const agent = findAgent()
+    if (!agent || typeof agent.followup !== 'function') {
+      logTo(store, 'warn', '找不到可唤醒的会话 Agent，' + items.length + ' 条疑似留在队列里等下次研判')
+      return false
+    }
+    const text = buildJudgePrompt(workspace, items)
+    const base = {
+      id: 'rtmatrix-' + nowMs().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+      role: 'user',
+      content: [{ type: 'text', text: text }],
+    }
+    try {
+      agent.followup(Object.assign({}, base, { source: { kind: 'plugin', plugin: 'redteam-attack-matrix' } }))
+    } catch (e1) {
+      try {
+        agent.followup(Object.assign({}, base, { id: base.id + 'b', source: { kind: 'user' } }))
+      } catch (e2) {
+        logTo(store, 'err', '唤醒模型失败：' + msgOf(e2) + ' —— 疑似仍留在队列里')
+        return false
+      }
+    }
+    return true
+  }
+
+  async function autoScanOnce() {
+    if (scanBusy) return
+    const w = currentWorkspace()
+    if (!w) return
+    scanBusy = true
+    autoScanState.at = nowMs()
+    try {
+      await withStore(async function () {
+        const r = await scanWorkspace(w.id, {})
+        if (!r.ok || !r.stats) return
+        autoScanState.sessions = r.stats.scannedSessions || 0
+        autoScanState.matches = r.stats.newMatches || 0
+        if (!r.changed) return
+        autoScanState.changedAt = nowMs()
+        const store = r.store
+        logTo(store, 'ok', '自动扫描：' + autoScanState.sessions + ' 个会话，命中 ' + autoScanState.matches + ' 处操作')
+        store.updatedAt = nowMs()
+        await writeStore(store)
+      })
+    } catch (e) {
+      console.error('[rtmatrix] 自动扫描失败: ' + msgOf(e))
+    } finally {
+      scanBusy = false
+    }
+  }
+
+  async function autoJudgeOnce() {
+    if (judgeBusy || scanBusy) return
+    if (lastHandoffAt && nowMs() - lastHandoffAt < JUDGE_COOLDOWN_MS) return
+    const w = currentWorkspace()
+    if (!w) return
+    judgeBusy = true
+    try {
+      await withStore(async function () {
+        const store = await readStore(w.path)
+        const all = pendingItems(store)
+        const now0 = nowMs()
+        const fresh = all.filter(function (x) { return isFresh(x, now0) })
+        if (fresh.length === 0) return
+        // 闸门：要么攒够 JUDGE_MIN 条，要么有已经等了很久的（避免少量命中永远排不上）。
+        const oldest = fresh[0] || null
+        const stale = oldest && oldest.firstAt && (nowMs() - oldest.firstAt > JUDGE_STALE_MS)
+        if (fresh.length < JUDGE_MIN && !stale) return
+        const batch = fresh.slice(0, JUDGE_BATCH)
+        for (const it of batch) {
+          const h = ((store.matrix[it.frameworkId] || {})[it.techniqueId] || {})[it.sessionId]
+          if (h) h.sentAt = nowMs()
+        }
+        logTo(store, 'phase', '自动研判：交给模型 ' + batch.length + ' 条疑似（队列共 ' + all.length + ' 条）')
+        store.updatedAt = nowMs()
+        await writeStore(store)
+        // 先把「已送出」落盘再唤醒模型：反过来的话，模型可能在被标记之前就开始判定。
+        const ok = await handoffToModel(store, w, batch)
+        lastHandoffAt = nowMs()
+        if (!ok) {
+          // 没送出去就别把它们标成已送出，否则会永远卡在队列里。
+          for (const it of batch) {
+            const h = ((store.matrix[it.frameworkId] || {})[it.techniqueId] || {})[it.sessionId]
+            if (h && h.confidence !== 'confirmed') h.sentAt = 0
+          }
+          await writeStore(store)
+        }
+      })
+    } catch (e) {
+      console.error('[rtmatrix] 自动研判失败: ' + msgOf(e))
+    } finally {
+      judgeBusy = false
+    }
+  }
+
+  // 模型下的结论落到矩阵上。rejected 走的是和手动「排除」同一条路：删除该命中。
+  async function applyDecision(args) {
+    const a = args && typeof args === 'object' ? args : {}
+    const frameworkId = String(a.frameworkId || '')
+    const techniqueId = String(a.techniqueId || '')
+    const sessionId = String(a.sessionId || '')
+    const raw = String(a.decision || '')
+    const decision = raw === 'confirmed' ? 'confirmed' : (raw === 'rejected' ? 'rejected' : 'suspected')
+    const reason = clip(a.reason || '', 400)
+    if (!reason) return { ok: false, error: 'reason 不能为空 —— 判定依据是审计链的一部分' }
+    const w = currentWorkspace()
+    if (!w) return { ok: false, error: '拿不到工作区' }
+    return await withStore(async function () {
+      const store = await readStore(w.path)
+      const hits = (store.matrix[frameworkId] || {})[techniqueId]
+      if (!hits) return { ok: false, error: '没有这个技术点的记录：' + frameworkId + '/' + techniqueId }
+      const h = hits[sessionId]
+      if (!h) return { ok: false, error: '没有这个会话的命中记录：' + sessionId }
+      const who = (h.sessionTitle || sessionId)
+      if (decision === 'rejected') {
+        delete hits[sessionId]
+        logTo(store, 'warn', '排除 ' + frameworkId + '/' + techniqueId + '（' + who + '）：' + reason)
+      } else {
+        h.confidence = decision
+        h.decidedBy = 'model'
+        h.reason = reason
+        h.judgedAt = nowMs()
+        h.needsJudge = false
+        h.sentAt = 0
+        if (decision === 'confirmed') h.confirmedAt = nowMs()
+        logTo(store, decision === 'confirmed' ? 'ok' : 'info',
+          (decision === 'confirmed' ? '确认 ' : '存疑 ') + frameworkId + '/' + techniqueId + '（' + who + '）：' + reason)
+      }
+      store.updatedAt = nowMs()
+      await writeStore(store)
+      return { ok: true, decision: decision, pending: pendingItems(store).length }
+    })
+  }
+
+  const labelTool = harness.defineTool({
+    name: 'matrix_label',
+    description: '为攻击矩阵的一条技术点命中下结论（攻击矩阵面板的自动研判用）。confirmed=已经实现或已验证；suspected=证据不足，保持疑似；rejected=误报，删除该命中。每条命中单独调用一次。',
+    parameters: {
+      type: 'object',
+      properties: {
+        frameworkId: { type: 'string', description: '框架 id，例如 atlas / attack-enterprise / owasp-llm / nvidia-kill-chain' },
+        techniqueId: { type: 'string', description: '技术点 id，例如 T1190 / LLM01' },
+        sessionId: { type: 'string', description: '会话 id，研判消息里给出的 sessionId' },
+        decision: { type: 'string', enum: ['confirmed', 'suspected', 'rejected'], description: 'confirmed=做成了；suspected=只是提及或尝试未果；rejected=误报' },
+        reason: { type: 'string', description: '判定依据：你实际看到的内容。会写进矩阵日志并显示在卡片上。' },
+      },
+      required: ['frameworkId', 'techniqueId', 'sessionId', 'decision', 'reason'],
+    },
+    output: {
+      schema: { type: 'json' },
+      render: function (args, value) {
+        if (!value || value.ok !== true) return [{ type: 'text', text: '判定失败：' + ((value && value.error) || '未知错误') }]
+        return [{ type: 'text', text: '已判定 ' + args.frameworkId + '/' + args.techniqueId + ' → ' + value.decision + '（还剩 ' + value.pending + ' 条待判定）' }]
+      },
+    },
+    execute: async function (args) { return await applyDecision(args) },
+  })
+  // 注册失败必须是可见的：自动研判整条链路都指望这个工具，静默失败会变成
+  // 「扫描在跑但永远没人下结论」——asset-graph 就栽在工具注册无声失败上。
+  try {
+    harness.registerTool(ctx, labelTool)
+    Promise.resolve().then(function () {
+      return withStore(async function () {
+        const w = currentWorkspace()
+        if (!w) return
+        const store = await readStore(w.path)
+        logTo(store, 'info', '已注册模型工具 matrix_label（自动研判用）')
+        store.updatedAt = nowMs()
+        await writeStore(store)
+      })
+    }).catch(function () {})
+  } catch (e) {
+    console.error('[rtmatrix] matrix_label 注册失败: ' + msgOf(e))
+    Promise.resolve().then(function () {
+      return withStore(async function () {
+        const w = currentWorkspace()
+        if (!w) return
+        const store = await readStore(w.path)
+        logTo(store, 'err', 'matrix_label 注册失败：' + msgOf(e))
+        await writeStore(store)
+      })
+    }).catch(function () {})
   }
 
   // ── 读模型 ────────────────────────────────────────────────────────────────
@@ -3092,17 +3550,24 @@ function applyHost(ctx) {
         let confirmedOps = 0
         let firstAt = 0
         let lastAt = 0
+        let pendingSessions = 0
         for (const sid of ids) {
           const h = hits[sid]
           n += h.occurrences || 0
           if (h.confidence === 'confirmed') { confSessions++; confirmedOps += h.occurrences || 0 }
+          else if (!h.judgedAt) pendingSessions++
           if (h.lastAt > lastAt) lastAt = h.lastAt
           if (h.firstAt && (!firstAt || h.firstAt < firstAt)) firstAt = h.firstAt
           if (h.lastAt > 0) {
+            // at=lastAt 只用来排序；展示用的是 firstAt → lastAt 这个区间。
+            // 之前只发 lastAt，于是「横跨 27 小时、388 次命中」在时间线上被压成一个时刻。
             timeline.push({
               frameworkId: fw.id, techniqueId: tech.id, techniqueName: tech.name,
-              at: h.lastAt, sessionId: sid, sessionTitle: h.sessionTitle,
+              at: h.lastAt, firstAt: h.firstAt || h.lastAt, lastAt: h.lastAt,
+              sessionId: sid, sessionTitle: h.sessionTitle,
               pieces: h.occurrences || 0, confidence: h.confidence,
+              decidedBy: h.decidedBy || '', reason: h.reason || '',
+              targets: hitTargets(h), matched: (h.matched || []).slice(0, 8),
             })
           }
         }
@@ -3113,6 +3578,7 @@ function applyHost(ctx) {
           id: tech.id, name: tech.name, tactics: tech.tactic_ids || [],
           confirmed: confSessions > 0, sessions: ids.length, occurrences: n,
           confirmedOps: confirmedOps, firstAt: firstAt, lastAt: lastAt,
+          pending: pendingSessions,
         })
       }
       frameworks.push({
@@ -3122,6 +3588,10 @@ function applyHost(ctx) {
       })
     }
     timeline.sort(function (a, b) { return b.at - a.at })
+    const pendingAll = pendingItems(store)
+    let pendingFresh = 0
+    const nowP = nowMs()
+    for (const x of pendingAll) if (isFresh(x, nowP)) pendingFresh++
     return {
       workspaceId: workspaceId || '',
       workspacePath: store.workspacePath || '',
@@ -3132,6 +3602,18 @@ function applyHost(ctx) {
       frameworks: frameworks,
       timeline: timeline.slice(0, 200),
       timelineTotal: timeline.length,
+      // 待判定：total 是还没人下结论的疑似条数，fresh 是还没送给模型的条数。
+      pending: { total: pendingAll.length, fresh: pendingFresh },
+      // 自动扫描的心跳（内存态，不入库）：面板用它显示「还在自动跑」。
+      autoScan: {
+        at: autoScanState.at, changedAt: autoScanState.changedAt,
+        sessions: autoScanState.sessions, matches: autoScanState.matches,
+        intervalMs: AUTO_SCAN_MS,
+      },
+      judging: { lastHandoffAt: lastHandoffAt, cooldownMs: JUDGE_COOLDOWN_MS, batch: JUDGE_BATCH },
+      // 被标成非目标的会话（面板上显示数量，并提供一键恢复）。
+      ignored: (store.ignoreSessions || []).slice(),
+      log: (store.log || []).slice(-40),
     }
   }
 
@@ -3147,7 +3629,8 @@ function applyHost(ctx) {
       operations.push({
         sessionId: sid, sessionTitle: h.sessionTitle, confidence: h.confidence,
         occurrences: h.occurrences, firstAt: h.firstAt, lastAt: h.lastAt,
-        matched: h.matched, snippets: h.snippets,
+        matched: h.matched, snippets: h.snippets, targets: hitTargets(h),
+        decidedBy: h.decidedBy || '', reason: h.reason || '', judgedAt: h.judgedAt || 0,
       })
     }
     operations.sort(function (a, b) { return b.lastAt - a.lastAt })
@@ -3184,9 +3667,11 @@ function applyHost(ctx) {
 
   harness.handle('scan', async function (args) {
     const wsId = args && args.workspaceId ? String(args.workspaceId) : ''
-    const r = await scanWorkspace(wsId, { reset: !!(args && args.reset) })
-    if (!r.ok) return { ok: false, error: r.error }
-    return { ok: true, stats: r.stats, current: r.workspace, view: summarizeStore(r.store, r.workspace.id) }
+    return await withStore(async function () {
+      const r = await scanWorkspace(wsId, { reset: !!(args && args.reset) })
+      if (!r.ok) return { ok: false, error: r.error }
+      return { ok: true, stats: r.stats, current: r.workspace, view: summarizeStore(r.store, r.workspace.id) }
+    })
   })
 
   harness.handle('technique', async function (args) {
@@ -3203,22 +3688,31 @@ function applyHost(ctx) {
     const frameworkId = String((args && args.frameworkId) || '')
     const techniqueId = String((args && args.techniqueId) || '')
     const sessionId = args && args.sessionId ? String(args.sessionId) : ''
-    const r = await loadCurrent(wsId)
-    if (!r.ok) return { ok: false, error: r.error }
-    const bucket = (r.store.matrix[frameworkId] || {})[techniqueId]
-    if (!bucket) return { ok: false, error: '该技术点还没有记录，先扫描一次' }
-    const ids = sessionId && bucket[sessionId] ? [sessionId] : Object.keys(bucket)
-    let n = 0
-    for (const sid of ids) {
-      const h = bucket[sid]
-      if (!h) continue
-      h.confidence = 'confirmed'
-      h.confirmedAt = nowMs()
-      n++
-    }
-    r.store.updatedAt = nowMs()
-    await writeStore(r.store)
-    return { ok: true, changed: n, view: summarizeStore(r.store, r.workspace.id) }
+    return await withStore(async function () {
+      const r = await loadCurrent(wsId)
+      if (!r.ok) return { ok: false, error: r.error }
+      const bucket = (r.store.matrix[frameworkId] || {})[techniqueId]
+      if (!bucket) return { ok: false, error: '该技术点还没有记录，先扫描一次' }
+      const ids = sessionId && bucket[sessionId] ? [sessionId] : Object.keys(bucket)
+      let n = 0
+      for (const sid of ids) {
+        const h = bucket[sid]
+        if (!h) continue
+        h.confidence = 'confirmed'
+        h.confirmedAt = nowMs()
+        // 人工确认也要留痕：面板上能分辨「AI 自动标」和「人点的」。
+        h.decidedBy = 'human'
+        h.judgedAt = nowMs()
+        h.needsJudge = false
+        h.sentAt = 0
+        if (!h.reason) h.reason = '面板手动确认'
+        n++
+      }
+      if (n > 0) logTo(r.store, 'ok', '人工确认 ' + frameworkId + '/' + techniqueId + '（' + n + ' 个会话）')
+      r.store.updatedAt = nowMs()
+      await writeStore(r.store)
+      return { ok: true, changed: n, view: summarizeStore(r.store, r.workspace.id) }
+    })
   })
 
   harness.handle('ignore', async function (args) {
@@ -3226,14 +3720,143 @@ function applyHost(ctx) {
     const frameworkId = String((args && args.frameworkId) || '')
     const techniqueId = String((args && args.techniqueId) || '')
     const sessionId = args && args.sessionId ? String(args.sessionId) : ''
+    return await withStore(async function () {
+      const r = await loadCurrent(wsId)
+      if (!r.ok) return { ok: false, error: r.error }
+      if (!(r.store.matrix[frameworkId] || {})[techniqueId]) return { ok: false, error: '该技术点还没有记录' }
+      if (sessionId) delete r.store.matrix[frameworkId][techniqueId][sessionId]
+      else r.store.matrix[frameworkId][techniqueId] = {}
+      logTo(r.store, 'warn', '人工排除 ' + frameworkId + '/' + techniqueId + (sessionId ? '（' + sessionId + '）' : '（全部会话）'))
+      r.store.updatedAt = nowMs()
+      await writeStore(r.store)
+      return { ok: true, view: summarizeStore(r.store, r.workspace.id) }
+    })
+  })
+
+  // 「清除」与「重扫」是一对互补动作，区别只在水位：
+  //   清除 = 清空命中记录与判定结论，**保留** scans 续点 → 历史事件不再入表，从此刻起重来；
+  //   重扫 = 连 scans 一起清 → 同一批历史事件被原样重建（所以它清不掉噪音）。
+  // 因此清除是可逆的：想要回历史就重扫一次。
+  harness.handle('clear', async function (args) {
+    const wsId = args && args.workspaceId ? String(args.workspaceId) : ''
+    return await withStore(async function () {
+      const r = await loadCurrent(wsId)
+      if (!r.ok) return { ok: false, error: r.error }
+      let buckets = 0
+      for (const fw of Object.keys(r.store.matrix)) {
+        const techs = r.store.matrix[fw] || {}
+        for (const tid of Object.keys(techs)) buckets += Object.keys(techs[tid] || {}).length
+      }
+      r.store.matrix = {}
+      // 日志也清掉（它记的是被清的这批数据），但立刻留一条清除记录本身。
+      r.store.log = []
+      r.store.logSeq = 0
+      logTo(r.store, 'warn', '人工清除本工作区矩阵数据：' + buckets + ' 条命中记录出表（扫描续点保留 —— 历史事件不会重新入表，想要回历史请点「重扫」）')
+      r.store.updatedAt = nowMs()
+      await writeStore(r.store)
+      return { ok: true, cleared: buckets, view: summarizeStore(r.store, r.workspace.id) }
+    })
+  })
+
+  // ── 导出：时间线 CSV ──────────────────────────────────────────────────────
+  // 面板只显示最近 200 个分组，导出取**全部**桶 —— 它是拿去写报告/进表格的交付物。
+  function stampFull(ms) {
+    if (!ms) return ''
+    const d = new Date(ms)
+    const p = function (n) { return n < 10 ? '0' + n : String(n) }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
+      p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds())
+  }
+
+  function csvCell(v) {
+    const s = v === undefined || v === null ? '' : String(v)
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
+  }
+
+  function buildTimelineCsv(store) {
+    const header = ['firstAt', 'lastAt', 'durationSec', 'frameworkId', 'techniqueId', 'techniqueName',
+      'sessionId', 'sessionTitle', 'occurrences', 'confidence', 'decidedBy', 'reason',
+      'targets', 'matchedKeywords', 'firstAtLocal', 'lastAtLocal', 'exportedAt']
+    const rows = []
+    for (const fw of FRAMEWORKS) {
+      const bucket = store.matrix[fw.id] || {}
+      for (const tech of fw.techniques) {
+        const hits = bucket[tech.id] || {}
+        for (const sid of Object.keys(hits)) {
+          const h = hits[sid]
+          if (!h || !h.lastAt) continue
+          rows.push({
+            first: h.firstAt || h.lastAt, last: h.lastAt,
+            fw: fw.id, tid: tech.id, tname: tech.name,
+            sid: sid, stitle: h.sessionTitle || '',
+            n: h.occurrences || 0, conf: h.confidence || '',
+            by: h.decidedBy || '', reason: h.reason || '',
+            targets: hitTargets(h).join(' | '),
+            matched: (h.matched || []).join(' | '),
+          })
+        }
+      }
+    }
+    rows.sort(function (a, b) { return b.last - a.last })
+    const L = [header.join(',')]
+    for (const r of rows) {
+      L.push([r.first, r.last, Math.round((r.last - r.first) / 1000), r.fw, r.tid, r.tname,
+        r.sid, r.stitle, r.n, r.conf, r.by, r.reason, r.targets, r.matched,
+        stampFull(r.first), stampFull(r.last), stampFull(nowMs())].map(csvCell).join(','))
+    }
+    // 前置 BOM：不带它 Excel 会把中文读成乱码。
+    return { text: '\ufeff' + L.join('\r\n') + '\r\n', rows: rows.length }
+  }
+
+  harness.handle('exportCsv', async function (args) {
+    const wsId = args && args.workspaceId ? String(args.workspaceId) : ''
     const r = await loadCurrent(wsId)
-    if (!r.ok) return { ok: false, error: r.error }
-    if (!(r.store.matrix[frameworkId] || {})[techniqueId]) return { ok: false, error: '该技术点还没有记录' }
-    if (sessionId) delete r.store.matrix[frameworkId][techniqueId][sessionId]
-    else r.store.matrix[frameworkId][techniqueId] = {}
-    r.store.updatedAt = nowMs()
-    await writeStore(r.store)
-    return { ok: true, view: summarizeStore(r.store, r.workspace.id) }
+    if (!r.ok) return { ok: false, error: r.error, workspaces: r.workspaces || [] }
+    const built = buildTimelineCsv(r.store)
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const safe = String(r.workspace.id || 'workspace').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 32)
+    return { ok: true, filename: 'attack-matrix-' + safe + '-' + stamp + '.csv', content: built.text, rows: built.rows }
+  })
+
+  // 把某个会话标成「非目标」：不再扫描它，并清掉它已有的记录 —— 忽略一个会话的
+  // 意思就是「这些不是目标活动」，留着一堆桶只会污染覆盖率。可逆：
+  // 恢复之后重扫一次，历史命中就回来了。
+  harness.handle('ignoreSession', async function (args) {
+    const wsId = args && args.workspaceId ? String(args.workspaceId) : ''
+    const sid = String((args && args.sessionId) || '')
+    const off = !!(args && args.off === true)
+    const all = !!(args && args.all === true)
+    if (!all && !sid) return { ok: false, error: '缺少 sessionId' }
+    return await withStore(async function () {
+      const r = await loadCurrent(wsId)
+      if (!r.ok) return { ok: false, error: r.error }
+      if (!Array.isArray(r.store.ignoreSessions)) r.store.ignoreSessions = []
+      let removed = 0
+      let note = ''
+      if (all) {
+        const n = r.store.ignoreSessions.length
+        r.store.ignoreSessions = []
+        note = '恢复全部（' + n + ' 个会话）—— 之后的扫描会重新收录'
+      } else if (off) {
+        const i = r.store.ignoreSessions.indexOf(sid)
+        if (i >= 0) r.store.ignoreSessions.splice(i, 1)
+        note = '恢复会话「' + sid + '」—— 之后的扫描会重新收录，历史命中需「重扫」才回来'
+      } else {
+        if (r.store.ignoreSessions.indexOf(sid) < 0) r.store.ignoreSessions.push(sid)
+        for (const fw of Object.keys(r.store.matrix)) {
+          const techs = r.store.matrix[fw] || {}
+          for (const tid of Object.keys(techs)) {
+            if (techs[tid] && techs[tid][sid]) { delete techs[tid][sid]; removed++ }
+          }
+        }
+        if (r.store.scans && r.store.scans[sid]) delete r.store.scans[sid]
+        note = '忽略会话「' + sid + '」：移出 ' + removed + ' 条命中记录，之后不再扫描它'
+      }
+      logTo(r.store, 'warn', '人工' + note)
+      r.store.updatedAt = nowMs()
+      await writeStore(r.store)
+      return { ok: true, removed: removed, ignored: r.store.ignoreSessions.slice(), view: summarizeStore(r.store, r.workspace.id) }
+    })
   })
 
   harness.handle('frameworks', async function () {
@@ -3248,6 +3871,22 @@ function applyHost(ctx) {
       }),
     }
   })
+
+  // 自动扫描 + 自动研判的心跳。timer 的返回值就是 disposer，交给 ctx.effect 管生命周期，
+  // 这样 stop / 卸载时不会留下野定时器。
+  ctx.effect(function () {
+    const t = ctx.get('timer')
+    if (!t || typeof t.interval !== 'function') {
+      console.error('[rtmatrix] timer 服务不可用：自动扫描与自动研判都不会运行')
+      return
+    }
+    const a = t.interval(function () { autoScanOnce().catch(function () {}) }, AUTO_SCAN_MS)
+    const b = t.interval(function () { autoJudgeOnce().catch(function () {}) }, AUTO_JUDGE_MS)
+    return function () { a(); b() }
+  }, 'redteam-attack-matrix: auto scan + judge')
+
+  // 装载后先扫一次，不然要等一个节拍才看到东西。
+  Promise.resolve().then(function () { return autoScanOnce() }).catch(function () {})
 
   const techniqueCount = FRAMEWORKS.reduce(function (n, f) { return n + f.techniques.length }, 0)
   console.log('[rtmatrix] attack-matrix host half ready; frameworks =', FRAMEWORKS.length, 'techniques =', techniqueCount)
