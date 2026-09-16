@@ -45,6 +45,95 @@ NODE_OPTIONS=--max-old-space-size=4096 dsh web
 
 并在改代码时尽量减少重发次数（见下方「研判规则外置」）。
 
+### 引导式加载（推荐，也是本仓库当前的运行形态）
+
+把 155 KB 整包当字符串发给 `cordis_define` 有一个硬伤：那份字符串要由 Agent **手工转义后逐字写进工具参数**。实测这样转写 155 KB 会出错，且报错只给第一个语法错误（本仓库真实发生过两次 `SyntaxError: Unexpected token ')'`，两次都指向同一行，排查代价很高）。
+
+改用「引导式」：提交给 `cordis_define` 的只是**几千字节引导码**，真正的源码留在磁盘上，运行期再读回来编译。
+
+```
+code.host    引导码  ──fs 读──▶  src/host.js    ──new Function──▶ 执行
+code.client  引导码  ──host.call('payload')──▶  src/client.js  ──new Function──▶ 执行
+```
+
+好处：
+
+- **改代码不用重发整包**。改完 `src/host.js` / `src/client.js`，只需重跑一次 Package（`cordis_run`）。
+- 会话记录里不再长期驻留 146 KB 源码，内存压力显著下降。
+- 磁盘上的 `src/*.js` 就是权威源码，不存在「仓库版本与运行版本不一致」。
+
+代价：Host 半边依赖一个绝对路径常量（引导码里的 `ROOT`）。换目录或移走仓库后要在引导码里同步改。
+
+#### 实测踩出来的四个约束（都不是推测）
+
+1. **宿主「函数体」里没有 `ctx`**。只有 `apply(ctx)` 的参数里有。在 `apply` 之外引用 `ctx` 会直接 `ReferenceError: ctx is not defined`——Host 和 Client 半边都一样。
+2. **客户端半边必须自己声明 `inject: ['slots','timer']`**。客户端门禁用 `Object.keys(ctx.fiber.inject)` 判断 `ctx.slots` 是否可读，而它取的是**你返回的那个 plugin 对象**的声明。引导码若不声明，内层 `applyClient` 拿到的 `ctx.slots` 是「未声明的假上下文」，Slot 注册会失败——而且**失败被 `applyClient` 自己的 `try/catch` 吞掉，外层照样报 `state: running`**，表现为「插件运行成功但侧边栏没有面板」。这个坑最难查。
+3. **`payload` 句柄要在 `await` 读文件之前注册**。否则客户端可能先到一步拿到 not-found，直接把客户端半边做死。句柄内部再去等读取完成即可（写成 `async`）。
+4. **沙箱只认工作区内的绝对路径**。相对路径会落到会话沙箱之外，读不到也写不进；`/tmp` 同样不可用。
+
+另外两条：源码含中文，`btoa` / `TextDecoder` 之类不能直接吃，引导码里只用字符串拼接就不受影响；`data:` URL 模块虽然可以 `import`，但**裸说明符（`'react'`、`'@deepseek-ai/cordis'`）在其中无法解析**，所以别指望靠它导入 React——React 必须由参数注入。
+
+> **注意**：引导码本身是在会话里定义的，不随仓库分发；它读的 `src/*.js` 才是仓库里的源码。因此修改引导码（例如换 `ROOT`）必须重新 `cordis_define`，而修改 `src/*.js` 只需重跑 Package。
+
+---
+
+## 常驻插件包（重启不丢）
+
+动态插件是进程内的，DSH 重启就没了。`lib/` 是把它做成**常驻插件包**后的产物：挂在宿主组合里，
+随进程启动加载，DSH 重启不丢、装了就能用。
+
+```
+src/host.js   ──机械改造（垫片）──▶  lib/host.js    宿主半边：三个工具
+src/client.js ──待改造──────────────▶  lib/client.js  客户端半边：面板（尚未完成）
+```
+
+`src/` 与 `lib/` 并不是两份实现：`lib/host.js` 由 `npm run build:lib` 从 `src/host.js`
+**生成**，其中 1600 行主体逻辑逐字相同，只有文件头尾与一层 `harness` 垫片不同
+（详见 `lib/README.md`）。核对时 diff 两者，差异应当只出现在头尾。
+
+### 安装（三步）
+
+```bash
+# 1) 让本仓库能解析 @deepseek-ai/* —— 它不在 profile 的解析链上
+mkdir -p node_modules
+ln -sfn ~/.dsh/profiles/node_modules/@deepseek-ai node_modules/@deepseek-ai
+
+# 2) 把插件行加进活动 profile 的宿主组合
+#    文件：~/.dsh/profiles/web/cordis.patch.yml
+#    （见下方「组合行的正确写法」）
+
+# 3) 重启 dsh web —— 宿主组合的 HMR 在 web profile 里是关闭的，热改不会生效
+```
+
+### 组合行的正确写法
+
+```yaml
+- insert:
+    - id: redteam-asset-graph
+      name: /home/parallels/Pictures/DSHairedPlugin   # 绝对路径
+```
+
+三个**实测踩过**的坑：
+
+1. **patch 条目的语义是 `PatchOptions`，不是「直接放一行」。** 带 `id` 的条目是「改某行配置」，
+   裸行会被 `patch: id is required` 跳过并告警；**只有 `insert` 且不带 `id` 才是往根列表追加新行**。
+2. **`name` 用绝对路径。** 相对路径的解析基址是 `DSH_HOME`（`~/.dsh`），不是 profile 目录——
+   写 `../../Pictures/...` 会被解析成 `~/.dsh/Pictures/...`（实测 dump 出来的就是这个错路径）。
+3. **`web profile` 里 `hmr` 是 `disabled: true`**，所以 `patchReload: live` 实际不生效，
+   改完组合**必须重启** `dsh web`。
+
+### 验证组合是否正确
+
+```bash
+dsh --profile web --dump-config | tail -4
+# 应看到：
+#   - id: redteam-asset-graph
+#     name: file:///home/parallels/Pictures/DSHairedPlugin
+```
+
+`--dump-config` 用的是与启动同一套 patch 语义（`applyEntryPatches`），所以 dump 对了、
+启动时就对了。
+
 ---
 
 ## 配置
@@ -148,11 +237,13 @@ npm test        # 或 node test/render-smoke.mjs
 
 ## 版本
 
-**运行中 `7.9.4`（pkg-5，run-6）**。版本历史见 git log —— 每个版本对应一次 `cordis_define` 的包。
+**运行中 `7.9.5`（引导式加载，dynamic plugin `asset-4` 的 `pkg-18`，run-19）**。
 
-`main` 上另有一版 **已就绪但未装载的 `7.9.5`**：候选池结算（研判结束后，把本轮送出、且未被 `asset_record` 采纳的候选出池；模型这一轮若没有任何推理/输出，则把候选退回待研判，重推上限 3 次以防空转），外加删除 `purgeJunkOnce()` 死代码。
+这版包含 `main` 上的候选池结算（研判结束后，把本轮送出、且未被 `asset_record` 采纳的候选出池；模型这一轮若没有任何推理/输出，则把候选退回待研判，重推上限 3 次以防空转），以及删除 `purgeJunkOnce()` 死代码。
 
-它已通过 `node --check` 与渲染冒烟测试，但**没有**通过 `cordis_define` 装载：装载要再发一次 host+client 全量（约 155KB），决定随「常驻插件包 + agent preset」移植一起上。所以在移植完成前，**`src/host.js` 的当前内容不等于运行中的 pkg-5** —— 以 git log 和实际装载记录为准。
+**因为改用了引导式加载，`src/host.js` / `src/client.js` 的当前内容就是运行中的代码** —— 不再存在「仓库版本与运行版本不一致」的问题。版本历史见 git log。
+
+仍未完成的是 README 顶部提到的**常驻插件包 + agent preset** 移植：当前形态仍是进程内的，DSH 重启后需要重新加载一次（但重新加载不再需要重发 155 KB 整包）。
 
 ## 许可
 
