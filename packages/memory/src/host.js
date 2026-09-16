@@ -41,6 +41,15 @@
   const CAPTURE_MAX = 50
   const INDEX_BATCH = 16
 
+  // 导入只认这四类。刻意不扩：格式越多，「导入失败」的成因就越多，而这四类覆盖了
+  // 红队现场真正会拿到的东西（报告 / 笔记 / 扫描导出的 txt）。解析都不引依赖：
+  // md、txt 直接读；docx 借 unzip 取 word/document.xml；pdf 借 pdftotext（poppler）。
+  const IMPORT_EXT = ['.md', '.markdown', '.txt', '.docx', '.pdf']
+  const IMPORT_LABEL = 'pdf / word(.docx) / md / txt'
+  // word / pdf 抽出来的是纯文本、没有 markdown 记号，按空行分段再按长度归拢，
+  // 否则整份文档会变成一条巨大条目（切块后标题只剩「x（1/40）」）。
+  const PLAIN_GROUP_MAX = 2000
+
   // 对话捕获的默认触发词。命中任意一个就把这条消息收进记忆库 ——
   // 「写入记忆」这类说法是红队队员的自然表达，不该要求他们换用工具。
   const CAPTURE_PHRASES = '写入记忆,写到记忆,记到记忆,记入记忆,存到记忆,存入记忆,存进记忆,记录到记忆,加入记忆,加到记忆,记住这点,记住这个,remember this,save to memory'
@@ -661,6 +670,101 @@
   }
 
   // ── 知识库操作 ────────────────────────────────────────────────────────────
+  // ── 导入解析：pdf / word(.docx) / md / txt ─────────────────────────────────
+  function extOf(path) {
+    const m = /\.([A-Za-z0-9]+)\s*$/.exec(String(path || '').trim())
+    return m ? '.' + m[1].toLowerCase() : ''
+  }
+
+  // Word 的正文就是一个 XML：段落边界是 </w:p>，制表与换行有专门标签。
+  // 抽文本只需要这三条规则 + 反转义，不需要完整 XML 解析器。
+  function docxXmlToText(xml) {
+    let s = String(xml || '')
+    s = s.replace(/<w:tab\b[^>]*\/?>/g, '\t')
+    s = s.replace(/<w:br\b[^>]*\/?>/g, '\n')
+    s = s.replace(/<\/w:p>/g, '\n')
+    s = s.replace(/<[^>]+>/g, '')
+    s = s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&')
+    return s.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+  }
+
+  function splitPlainText(text) {
+    const out = []
+    let buf = []
+    let size = 0
+    const flush = function () {
+      if (!buf.length) return
+      const t = buf.join('\n').trim()
+      if (t) out.push(t)
+      buf = []
+      size = 0
+    }
+    for (const para of String(text || '').split(/\n\s*\n/)) {
+      const p = para.trim()
+      if (!p) continue
+      // 已经攒了内容、再加就超上限时先收一段：这样段落边界才是切点，
+      // 而不是「撞到上限才切」（那会把一整段正文和前面的短标题糊在一起）。
+      if (size > 0 && size + p.length > PLAIN_GROUP_MAX) flush()
+      buf.push(p)
+      size += p.length
+      if (size >= PLAIN_GROUP_MAX) flush()
+    }
+    flush()
+    return out
+  }
+
+  async function readImport(path) {
+    const ext = extOf(path)
+    if (IMPORT_EXT.indexOf(ext) < 0) {
+      throw new Error('只支持 ' + IMPORT_LABEL + '（拿到的是 ' + (ext ? ext + ' 文件' : '没有扩展名的文件') + '）')
+    }
+    if (ext === '.md' || ext === '.markdown' || ext === '.txt') {
+      const fs = ctx.get('fs')
+      if (fs === undefined || fs === null) throw new Error('fs 服务不可用，读不了文本文件')
+      const target = await fs.resolve(path)
+      const info = await fs.stat(target)
+      if (!info) throw new Error('文件不存在：' + path)
+      return { text: String(await fs.readText(target)), ext: ext, how: '直接读文本' }
+    }
+    const shell = ctx.get('shell')
+    if (shell === undefined || shell === null || typeof shell.resolve !== 'function') {
+      throw new Error('shell 服务不可用：' + (ext === '.docx' ? 'word' : 'pdf') + ' 要靠外部命令抽文本')
+    }
+    const cmd = ext === '.docx'
+      ? 'unzip -p ' + shQuote(path) + ' word/document.xml'
+      : 'pdftotext -layout ' + shQuote(path) + ' -'
+    const spec = shell.resolve({ command: cmd, timeoutMs: 60000, stdoutMaxBytes: 16 * 1024 * 1024 })
+    const r = await shell.run(spec)
+    const body = (r && r.stdout && r.stdout.text) || ''
+    if (!r || r.exitCode !== 0 || !String(body).trim()) {
+      const why = clip((r && r.stderr && r.stderr.text) || ('命令退出码 ' + (r && r.exitCode)), 200)
+      throw new Error((ext === '.docx' ? 'word' : 'pdf') + ' 抽文本失败：' + why
+        + (ext === '.pdf' ? '（pdf 需要 poppler 的 pdftotext）' : '（老式 .doc 不支持，请先另存为 .docx）'))
+    }
+    return { text: ext === '.docx' ? docxXmlToText(body) : String(body), ext: ext, how: ext === '.docx' ? 'unzip 取 word/document.xml' : 'pdftotext -layout' }
+  }
+
+  // 切条目：markdown 按 ## 分节；word / pdf 按长度归拢。
+  function entriesFromDoc(path, doc) {
+    const tag = doc.ext.replace('.', '')
+    const out = []
+    if (doc.ext === '.md' || doc.ext === '.markdown') {
+      for (const part of String(doc.text).split(/\n(?=##\s)/)) {
+        const t = part.trim()
+        if (!t) continue
+        const m = /^##\s+(.+)$/m.exec(t)
+        out.push({ title: clip((m ? m[1] : t.split('\n')[0]) || path, 120), text: t, kind: 'knowledge', tags: [tag], source: path })
+      }
+    } else {
+      const groups = splitPlainText(doc.text)
+      for (let i = 0; i < groups.length; i++) {
+        const t = groups[i]
+        out.push({ title: clip(t.split('\n')[0] || (path + ' 第 ' + (i + 1) + ' 段'), 120), text: t, kind: 'knowledge', tags: [tag], source: path })
+      }
+    }
+    return out
+  }
+
   function splitChunks(text) {
     const s = String(text || '').trim()
     if (!s) return []
@@ -1025,6 +1129,8 @@
         progress: store.meta.progress || null,
         lastOp: store.meta.lastOp || null,
       },
+      importLabel: IMPORT_LABEL,
+      importExt: IMPORT_EXT.slice(),
       captures: store.captures.slice(-20).reverse(),
       capturePhrases: capturePhrases(s),
       log: store.log.slice(-60),
@@ -1180,7 +1286,10 @@
         const r = await addEntries(list, null, source || 'plugin')
         log('ok', '外部插件写入记忆 ' + r.added + ' 条（来源 ' + (source || 'plugin') + '，本地共 ' + (store.meta.localCount || 0) + ' 条）')
         await persist()
-        return { added: r.added, updated: r.updated, indexed: r.indexed, indexError: r.indexError, localCount: store.meta.localCount || 0, ids: r.ids || [] }
+        return {
+          added: r.added, updated: r.updated, entries: r.entries, rows: r.rows, dimension: r.dimension,
+          indexed: r.indexed, indexError: r.indexError, localCount: store.meta.localCount || 0, ids: r.ids || [],
+        }
       },
       search: async function (query, topK, opts) {
         await ensureLoaded()
@@ -1345,7 +1454,7 @@
     if (store.captures.length > CAPTURE_MAX) store.captures = store.captures.slice(-CAPTURE_MAX)
     log('ok', '人工捕获一条：' + clip(text, 100))
     await persist()
-    return { ok: true, snapshot: snapshot(), added: r.added, indexed: r.indexed, indexError: r.indexError }
+    return { ok: true, snapshot: snapshot(), added: r.added, updated: r.updated, entries: r.entries, rows: r.rows, dimension: r.dimension, indexed: r.indexed, indexError: r.indexError }
   })
 
   harness.handle('captureClear', async function () {
@@ -1468,28 +1577,6 @@
     return r
   })
 
-  harness.handle('addKnowledge', async function (args) {
-    await ensureLoaded()
-    const a = args && typeof args === 'object' ? args : {}
-    let entries = []
-    if (Array.isArray(a.entries)) entries = a.entries
-    else if (a.text) entries = [{ text: a.text, title: a.title, kind: a.kind, tags: a.tags, source: a.source }]
-    if (!entries.length) return { ok: false, error: '没有可导入的内容' }
-    try {
-      const r = await addEntries(entries, null, a.source || 'manual')
-      log('ok', '导入记忆 ' + r.added + ' 条（来源 ' + (a.source || 'manual') + '，索引 ' + r.indexed + '/' + r.rows + ' 行，维度 ' + (r.dimension || '?') + '）')
-      store.meta.lastOp = { at: nowMs(), op: 'add', text: r.added + ' 条' }
-      await refreshCount()
-      await persist()
-      return { ok: true, snapshot: snapshot(), added: r.added, updated: r.updated, rows: r.rows, indexed: r.indexed, indexError: r.indexError, dimension: r.dimension }
-    } catch (e) {
-      store.meta.progress = null
-      logFailure('导入失败', e, 'addKnowledge')
-      await persist()
-      return { ok: false, error: msgOf(e), snapshot: snapshot() }
-    }
-  })
-
   // 把本地还没进索引的条目补进 Milvus（all=true 时整库重建索引）。
   harness.handle('syncIndex', async function (args) {
     await ensureLoaded()
@@ -1511,40 +1598,29 @@
     }
   })
 
-  // 从文件导入：.json（数组或 {entries:[...]}）/ .md / .txt（按 ## 标题切段）
+  // 从文件导入：pdf / word(.docx) / md / txt
   harness.handle('importFile', async function (args) {
     await ensureLoaded()
-    const fs = ctx.get('fs')
-    if (fs === undefined || fs === null) return { ok: false, error: 'fs 服务不可用，无法读文件' }
     const path = String((args && args.path) || '').trim()
-    if (!path) return { ok: false, error: '缺少文件路径' }
+    if (!path) return { ok: false, error: '缺少文件路径（用绝对路径）', snapshot: snapshot() }
     try {
-      const target = await fs.resolve(path)
-      const info = await fs.stat(target)
-      if (!info) return { ok: false, error: '文件不存在：' + path }
-      const raw = String(await fs.readText(target))
-      let entries = []
-      if (/\.json$/i.test(path)) {
-        const parsed = JSON.parse(raw)
-        entries = Array.isArray(parsed) ? parsed : (Array.isArray(parsed && parsed.entries) ? parsed.entries : [])
-        if (!entries.length) return { ok: false, error: 'JSON 里没有可导入条目（期望数组，或 {entries:[...]}）' }
-      } else {
-        for (const p of raw.split(/\n(?=##\s)/)) {
-          const t = p.trim()
-          if (!t) continue
-          const m = /^##\s+(.+)$/m.exec(t)
-          entries.push({ title: m ? m[1].trim() : t.split('\n')[0], text: t, kind: 'knowledge', source: path })
-        }
-      }
+      const doc = await readImport(path)
+      const entries = entriesFromDoc(path, doc)
+      if (!entries.length) return { ok: false, error: '从文件里没抽到可入库的文字：' + path, snapshot: snapshot() }
       const r = await addEntries(entries, null, path)
-      log('ok', '从文件导入 ' + r.added + ' 条：' + clip(path, 120) + (r.indexError ? '（索引未同步：' + clip(r.indexError, 80) + '）' : ''))
+      log('ok', '导入 ' + clip(path, 90) + '（' + doc.ext + '，' + doc.how + '，' + doc.text.length + ' 字）→ '
+        + r.added + ' 条' + (r.indexError ? '（本地已存，索引未同步）' : '（索引 ' + r.indexed + ' 行）'))
       store.meta.lastOp = { at: nowMs(), op: 'importFile', text: clip(path, 120) }
       await refreshCount()
       await persist()
-      return { ok: true, snapshot: snapshot(), added: r.added, updated: r.updated, rows: r.rows, indexed: r.indexed, indexError: r.indexError, parsed: entries.length }
+      return {
+        ok: true, snapshot: snapshot(), path: path, ext: doc.ext, how: doc.how,
+        chars: doc.text.length, added: r.added, updated: r.updated, parsed: entries.length,
+        indexed: r.indexed, indexError: r.indexError,
+      }
     } catch (e) {
       store.meta.progress = null
-      logFailure('文件导入失败', e, path)
+      logFailure('导入失败', e, clip(path, 80))
       await persist()
       return { ok: false, error: msgOf(e), snapshot: snapshot() }
     }

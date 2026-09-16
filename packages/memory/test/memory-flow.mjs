@@ -146,6 +146,17 @@ const shell = {
       return reply({ code: 0, data: [{ id: 'id-0', title: '标题 0', tags: 'owasp', kind: 'knowledge', source: 'test', created_at: 1700000000000, updated_at: 1700000000000 }] })
     }
     if (cmd.indexOf('/v2/vectordb/entities/delete') >= 0) return reply({ code: 0, data: { deleteCount: 2 } })
+    // 导入 pdf / word：抽文本靠外部命令
+    if (cmd.indexOf('unzip -p ') === 0) {
+      return text('<?xml version="1.0"?><w:document><w:body>' +
+        '<w:p><w:r><w:t>报告标题</w:t></w:r></w:p>' +
+        '<w:p><w:r><w:t>第一段：ATS 未授权可列模型。</w:t></w:r></w:p>' +
+        '<w:p><w:r><w:t>&lt;script&gt; 要转义</w:t></w:r></w:p>' +
+        '</w:body></w:document>')
+    }
+    if (cmd.indexOf('pdftotext ') === 0) {
+      return text('PDF 第一页标题\n\n正文第一段：间接注入要看三段证据链。\n\n正文第二段：' + 'B'.repeat(2200))
+    }
     // S3
     if (cmd.indexOf('--aws-sigv4') >= 0) {
       if (cmd.indexOf('list-type=2') >= 0) {
@@ -203,6 +214,10 @@ function rpc(method, args) {
     }
     handlers.rpc(req, res)
   })
+}
+// 程序化写入口：redteamMemory 服务（值是一份 /add 的薄封装，方便断言）
+async function svcAdd(entries, source) {
+  return await services.redteamMemory.add(entries, source)
 }
 const lastCall = (pat) => { for (let i = calls.length - 1; i >= 0; i--) if (calls[i].indexOf(pat) >= 0) return calls[i]; return '' }
 const countCalls = (pat) => calls.filter((c) => c.indexOf(pat) >= 0).length
@@ -322,8 +337,9 @@ console.log('\n[4] Milvus：集合与增删查')
   ok(lastCall('/collections/list').indexOf('Authorization: Bearer tok') >= 0, 'Milvus 带了 Bearer token')
 
   calls.length = 0
-  const add = await rpc('addKnowledge', { text: '这是一条用于测试的 AI 安全知识。', title: '测试条目', kind: 'technique', tags: 'owasp,注入', source: 'unit' })
-  ok(add.ok === true, 'addKnowledge 成功')
+  // 界面上的「粘贴导入」已取消，程序化写入口是 redteamMemory 服务（报告插件用的也是它）
+  const add = await svcAdd([{ text: '这是一条用于测试的 AI 安全知识。', title: '测试条目', kind: 'technique', tags: 'owasp,注入', source: 'unit' }], 'unit')
+  ok(add.added === 1 && add.ids.length === 1, '服务写入成功并返回条目 id')
   ok(add.added === 1 && add.rows === 1, '写入 1 行（实际 added=' + add.added + ' rows=' + add.rows + '）')
   ok(add.dimension === EMBED_DIM, '维度取自向量长度：' + add.dimension)
   const createCmd = lastCall('/collections/create')
@@ -340,15 +356,15 @@ console.log('\n[4] Milvus：集合与增删查')
 
   // 同样的内容再导入一次：id 必须一样（这样 upsert 才是覆盖而不是重复堆积）
   const firstId = up.data[0].id
-  await rpc('addKnowledge', { text: '这是一条用于测试的 AI 安全知识。', title: '测试条目', kind: 'technique', tags: 'owasp,注入', source: 'unit' })
+  await svcAdd([{ text: '这是一条用于测试的 AI 安全知识。', title: '测试条目', kind: 'technique', tags: 'owasp,注入', source: 'unit' }], 'unit')
   const up2 = bodyOf(lastCall('/entities/upsert'))
   ok(up2.data[0].id === firstId, '同样内容重复导入得到同一个 id（去重靠它）')
 
   // 再凑 4 条并同步进索引：让召回/重排有东西可排，且索引里的行对应真实本地条目。
   const many = []
   for (let i = 0; i < 4; i++) many.push({ text: '提示词注入的第 ' + i + ' 条测试知识', title: '注入 ' + i, kind: 'technique', tags: 'owasp,注入', source: 'unit' })
-  const addMany = await rpc('addKnowledge', { entries: many })
-  ok(addMany.ok === true && addMany.added === 4, '批量导入 4 条（实际 ' + addMany.added + '）')
+  const addMany = await svcAdd(many, 'unit')
+  ok(addMany.added === 4, '批量导入 4 条（实际 ' + addMany.added + '）')
 
   calls.length = 0
   const sr = await rpc('search', { query: '提示词注入', topK: 4, rerank: true })
@@ -456,7 +472,7 @@ console.log('\n[7] 入库链路：切块与维度校验')
   })
   calls.length = 0
   const long = 'A'.repeat(3000)
-  const r = await rpc('addKnowledge', { text: long, title: '长文', kind: 'knowledge' })
+  const r = await rpc('captureAdd', { text: long, title: '长文', kind: 'knowledge' })
   ok(r.ok === true, '长文导入成功')
   ok(r.rows === 3, '3000 字符切成 3 块（每块上限 1200、重叠 120）：实际 ' + r.rows)
   const up = bodyOf(lastCall('/entities/upsert'))
@@ -470,13 +486,60 @@ console.log('\n[7] 入库链路：切块与维度校验')
   ok(!!createCmd || countCalls('/collections/list') >= 1, '走了集合存在性检查')
 }
 
+console.log('\n[7b] 导入：只认 pdf / word(.docx) / md / txt')
+{
+  files.set('/tmp/kb.md', '## 第一节\n内容一\n\n## 第二节\n内容二')
+  files.set('/tmp/kb.txt', '甲段落，讲的是端口扫描。\n\n乙段落，讲的是默认口令。')
+
+  calls.length = 0
+  const md = await rpc('importFile', { path: '/tmp/kb.md' })
+  ok(md.ok === true, 'md 导入成功')
+  ok(md.parsed === 2 && md.ext === '.md', '按 ## 切成 2 段（实际 ' + md.parsed + '）')
+  ok(md.how.indexOf('直接读文本') >= 0, 'md 走直接读文本：' + md.how)
+  const mdList = await rpc('listKnowledge', { keyword: '第一节', limit: 5, offset: 0 })
+  ok(mdList.entries.length === 1 && mdList.entries[0].title === '第一节', '段落标题取自 ## 行：' + mdList.entries[0].title)
+
+  const txt = await rpc('importFile', { path: '/tmp/kb.txt' })
+  ok(txt.ok === true && txt.ext === '.txt', 'txt 导入成功')
+  ok(txt.parsed === 1, '短文本归拢成 1 条（实际 ' + txt.parsed + '）')
+
+  calls.length = 0
+  const docx = await rpc('importFile', { path: '/tmp/report.docx' })
+  ok(docx.ok === true && docx.ext === '.docx', 'word 导入成功')
+  ok(docx.how.indexOf('unzip') >= 0, 'word 靠 unzip 取 word/document.xml：' + docx.how)
+  ok(lastCall('unzip -p ').indexOf('word/document.xml') > 0, '命令形状正确：' + lastCall('unzip -p ').slice(0, 80))
+  const docxHit = await rpc('listKnowledge', { keyword: '报告标题', limit: 5, offset: 0 })
+  ok(docxHit.entries.length === 1, '抽出了 word 正文')
+  const docxDetail = await rpc('getEntry', { id: docxHit.entries[0].id })
+  ok(docxDetail.entry.text.indexOf('第一段') >= 0, '段落文本完整')
+  ok(docxDetail.entry.text.indexOf('<script>') >= 0, 'XML 实体反转义了（&lt;script&gt; -> <script>）')
+
+  calls.length = 0
+  const pdf = await rpc('importFile', { path: '/tmp/report.pdf' })
+  ok(pdf.ok === true && pdf.ext === '.pdf', 'pdf 导入成功')
+  ok(pdf.how.indexOf('pdftotext') >= 0, 'pdf 靠 pdftotext 抽文本：' + pdf.how)
+  ok(pdf.parsed === 2, '长 pdf 按长度归拢成 2 条（实际 ' + pdf.parsed + '）')
+  ok(pdf.chars > 2200, '抽到了全部文本（' + pdf.chars + ' 字）')
+
+  const json = await rpc('importFile', { path: '/tmp/kb.json' })
+  ok(json.ok === false && json.error.indexOf('只支持') >= 0, 'json 被明确拒绝：' + json.error)
+  const xlsx = await rpc('importFile', { path: '/tmp/kb.xlsx' })
+  ok(xlsx.ok === false && xlsx.error.indexOf('pdf / word(.docx) / md / txt') >= 0, '错误里给出支持的格式：' + xlsx.error)
+  const noext = await rpc('importFile', { path: '/tmp/kb' })
+  ok(noext.ok === false && noext.error.indexOf('没有扩展名') >= 0, '没有扩展名时说清楚：' + noext.error)
+  const missing = await rpc('importFile', { path: '/tmp/nope.md' })
+  ok(missing.ok === false && missing.error.indexOf('不存在') >= 0, '文件不存在时明确报错：' + missing.error)
+  const empty = await rpc('importFile', {})
+  ok(empty.ok === false, '缺少路径时拒绝')
+}
+
 console.log('\n[8] 本地优先：没配向量模型 / Milvus 也能存能查')
 {
   // 把外部服务全部清空，模拟「刚装上、什么都没配」——这是最常见的第一次使用状态。
   await rpc('saveSettings', { milvus: { uri: '' }, embed: { apiKey: '' }, rerank: { enabled: false } })
   calls.length = 0
-  const add = await rpc('addKnowledge', { text: '没有向量模型时也要能存住的知识：间接注入要看三段证据链（落库 / 进上下文 / 被利用）。', title: '离线条目', kind: 'knowledge', tags: '注入,离线' })
-  ok(add.ok === true, '没有 Milvus / Key 时 addKnowledge 依然成功')
+  const add = await rpc('captureAdd', { text: '没有向量模型时也要能存住的知识：间接注入要看三段证据链（落库 / 进上下文 / 被利用）。', title: '离线条目', kind: 'knowledge' })
+  ok(add.ok === true, '没有 Milvus / Key 时写入依然成功')
   ok(add.added === 1 && add.updated === 0, '本地入库 1 条（added=' + add.added + ' updated=' + add.updated + '）')
   ok(add.indexed === 0 && !!add.indexError, '索引同步被跳过并记下原因：' + add.indexError)
   ok(calls.length === 0, '全程没有发出 HTTP 请求（不去等一次必然失败的超时）')

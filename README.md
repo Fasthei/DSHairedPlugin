@@ -18,7 +18,8 @@
 
 - **红队记忆**：把 AI 安全知识与进攻技巧变成模型**可检索**的知识库；工作区对话里说一句
   「写入记忆」就自动收录。**本地库是权威数据，Milvus 只是它的派生索引** ——
-  没有向量模型也能记录与检索，网络故障不会让内容写不进去。
+  没有向量模型也能记录与检索，网络故障不会让内容写不进去。面板只管用（知识库 / 检索 / 日志），
+  数据库与向量模型在 DSH 设置的「红队设置」页里；导入只认 pdf / word(.docx) / md / txt。
 - **攻击矩阵**：扫工作区对话，映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，
   自动研判「已确认 / 疑似」，并标出已覆盖与缺口。
 - **红队报告**：把上面两样加上工作区对话汇成一份证据材料，交给**当前会话正在用的那个模型**
@@ -29,7 +30,7 @@
 |---|---|---|---|---|
 | [资产图谱](packages/asset-graph/) | `dsh-redteam-asset-graph` | `7.9.7` | 目标资产自动收集、关联、可视化，模型参与研判 | ✅ 已发布 |
 | [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.1.1` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
-| [记忆](packages/memory/) | `dsh-redteam-memory` | `0.3.0` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」） | 🔧 源码可用（未发包） |
+| [记忆](packages/memory/) | `dsh-redteam-memory` | `0.3.0` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」；配置在「设置 → 红队设置」，导入只认 pdf / word / md / txt） | 🔧 源码可用（未发包） |
 | [报告](packages/report/) | `dsh-redteam-report` | `0.1.0` | 基于工作区对话 + 攻击矩阵命中 + 记忆，AI 自动撰写报告，可编辑预览、导出 Word、导入记忆 | 🔧 源码可用（未发包） |
 
 > 「仓库版本」是 `packages/*/package.json` 里的版本，可能领先 registry 上已发布的那个
@@ -96,8 +97,8 @@ for p in asset-graph attack-matrix memory report; do
   ln -sfn "$DSH_NM/dsh-tools" "packages/$p/node_modules/@deepseek-ai/dsh-tools"
 done
 npm test
-# 现在能看到真实项数（共 676 项）：
-#   资产图谱 15 · 攻击矩阵 host 97 / client 85 · 记忆 host 133 / client 63
+# 现在能看到真实项数（共 721 项）：
+#   资产图谱 15 · 攻击矩阵 host 97 / client 85 · 记忆 host 154 / client 87
 #   报告 docx 122 / host 102 / client 59
 ```
 
