@@ -128,6 +128,7 @@ const sessionMap = { 'session-a': sA, 'session-b': sB, 'session-c': sC }
 const { fs: fsService, files } = fakeFs()
 const registeredRoutes = []
 const handlers = {}
+const services = {}
 const ctx = {
   fs: fsService,
   shell: {},
@@ -142,6 +143,7 @@ const ctx = {
   },
   effect: (fn) => { const d = fn(); return (d && typeof d.then === 'function') ? () => {} : (d || (() => {})) },
   on: () => () => {},
+  provide: (name, value) => { services[name] = value; return () => { delete services[name] } },
   get: (name) => {
     if (name === 'fs') return fsService
     if (name === 'workspaceRegistry') {
@@ -499,6 +501,28 @@ console.log('\n[12] 证据片段：最早 2 条 + 滚动保留最新 2 条（判
     ok(texts[2].indexOf('第五处') >= 0 && texts[3].indexOf('第六处') >= 0,
       '最新两条滚进来了（实际：' + JSON.stringify(texts.slice(2)) + '）')
   }
+}
+
+console.log('\n[对外服务] redteamAttackMatrix：报告插件要的那份数据')
+{
+  const svc = services.redteamAttackMatrix
+  ok(!!svc, '注册了 redteamAttackMatrix 服务')
+  ok(!!svc && typeof svc.digest === 'function' && typeof svc.names === 'function', '服务暴露 digest / names / storePath')
+  const names = svc.names()
+  const atlas = names.atlas || {}
+  ok(!!atlas.label, '框架表带框架名：' + atlas.label)
+  ok(Object.keys(atlas.techniques || {}).length > 20, '框架表带技术点名字（' + Object.keys(atlas.techniques || {}).length + ' 条）')
+  const d = await svc.digest()
+  ok(d.items.length > 0, 'digest 返回命中条目（' + d.items.length + ' 条）')
+  ok(d.confirmed + d.suspected === d.items.length, '已确认 + 疑似 = 总数（' + d.confirmed + ' + ' + d.suspected + '）')
+  const it = d.items[0]
+  ok(!!it.frameworkId && !!it.techniqueId, '条目带框架与技术点 id：' + it.frameworkId + '/' + it.techniqueId)
+  ok(!!it.techniqueName, '条目带技术点名字（报告不能只写 id）：' + it.techniqueName)
+  ok(typeof it.sessionTitle === 'string' && typeof it.reason === 'string', '条目带会话标题与判据字段')
+  ok(Array.isArray(it.targets) && Array.isArray(it.snippets), '条目带目标与证据片段')
+  ok(d.items.every((x) => x.confidence === 'confirmed' || x.confidence === 'suspected'), '已排除的命中不进 digest')
+  ok(d.items.every((x, i) => i === 0 || !(d.items[i - 1].confidence === 'suspected' && x.confidence === 'confirmed')), '已确认的排在疑似前面')
+  ok(typeof d.storePath === 'string' && d.storePath.indexOf('.redteam-attack-matrix.json') >= 0, 'digest 带存储路径：' + d.storePath)
 }
 
 console.log('\n' + (fails.length === 0 ? '✓ 全部通过（' + pass + ' 项）' : '✗ 失败 ' + fails.length + ' 项：\n  - ' + fails.join('\n  - ')))

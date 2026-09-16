@@ -43,12 +43,38 @@ function fill(text) {
     .split('__ROUTE_BASE__').join(ROUTE_BASE)
 }
 
+// ── 渲染模块 ────────────────────────────────────────────────────────────────
+// markdown → 块/HTML/docx 的实现单独放在 src/docx.js：它是纯函数、能单测，
+// 混进 host.js 主体会让「撰写报告」的逻辑读不下去。生成时内联进产物，
+// 所以 lib/host.js 仍是自包含的，运行期不需要额外文件。
+const DOCX_MARKER = '/* @DOCX@ */'
+const docxStripped = (() => {
+  const src = read('src/docx.js')
+  if (!/^export (function|const) /m.test(src)) {
+    console.error('build-lib: src/docx.js 必须用 `export function` / `export const` 导出')
+    process.exit(1)
+  }
+  const stripped = src.replace(/^export /gm, '')
+  if (/^\s*(import|export)\s/m.test(stripped)) {
+    console.error('build-lib: src/docx.js 去掉 export 后仍有 import/export，无法内联')
+    process.exit(1)
+  }
+  return stripped.trim() + '\n'
+})()
+
 // ── Host 半边 ────────────────────────────────────────────────────────────────
 const hostHead = read('lib/parts/host.head.js')
 const hostTail = read('lib/parts/host.tail.js')
 // 本插件的 src/host.js 只写 applyHost 的函数体（函数头与收尾由 lib/parts 提供），
 // 因此这里不做「剥离动态包装」——那个包装是 asset-graph 那种内联插件对象才有的。
-let hostOut = fill(hostHead + read('src/host.js') + hostTail)
+const hostBody = read('src/host.js')
+if (hostBody.split(DOCX_MARKER).length !== 2) {
+  console.error('build-lib: src/host.js 里必须恰好有一个 ' + DOCX_MARKER + ' 占位符')
+  process.exit(1)
+}
+// 顺序很重要：先把渲染模块嵌进去，再跑 fill()。反过来 fill() 会先看到
+// 不属于它的占位符，而渲染模块里若出现 __PKG_NAME__ 之类字样也会被误替换。
+let hostOut = fill(hostHead + hostBody.replace(DOCX_MARKER, docxStripped) + hostTail)
 
 // ── Client 半边 ──────────────────────────────────────────────────────────────
 // 垫片注入到主体自己的 applyClient 开头，包装保持极薄（只做作用域与导出）。

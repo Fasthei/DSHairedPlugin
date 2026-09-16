@@ -6,9 +6,9 @@
 | 插件 | 包名 | 仓库版本 | 用途 | 状态 |
 |---|---|---|---|---|
 | [资产图谱](packages/asset-graph/) | `dsh-redteam-asset-graph` | `7.9.7` | 目标资产自动收集、关联、可视化，模型参与研判 | ✅ 已发布 |
-| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.1.0` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
-| [记忆](packages/memory/) | `dsh-redteam-memory` | `0.1.0` | 跨会话保留目标上下文，避免重复侦察 | 🚧 开发中 |
-| [报告](packages/report/) | `dsh-redteam-report` | `0.1.0` | 把图谱与研判结论汇成可交付报告 | 🚧 开发中 |
+| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.1.1` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
+| [记忆](packages/memory/) | `dsh-redteam-memory` | `0.3.0` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」） | 📦 待发布 |
+| [报告](packages/report/) | `dsh-redteam-report` | `0.1.0` | 基于工作区对话 + 攻击矩阵命中 + 记忆，AI 自动撰写报告，可编辑预览、导出 Word、导入记忆 | 🚧 待发布 |
 
 ---
 
@@ -42,8 +42,8 @@ dsh plugin --profile web add dsh-redteam-asset-graph
     │   ├── README.md            使用者文档
     │   └── DEVELOPMENT.md       该插件的开发笔记
     ├── attack-matrix/           攻击矩阵（已发布 1.1.0）—— 结构与上同
-    ├── memory/                  跨会话记忆（骨架）
-    └── report/                  交付报告（骨架）
+    ├── memory/                  红队记忆（本地库 + Milvus 索引 + 对话捕获）
+    └── report/                  红队报告（AI 撰写 + 导出 Word + 导入记忆）
 ```
 
 **`src/` 是权威源码，`lib/` 由它生成**。两者主体逻辑逐字相同，差异只在垫片——

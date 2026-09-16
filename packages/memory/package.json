@@ -1,8 +1,7 @@
 {
   "name": "dsh-redteam-memory",
-  "version": "0.1.0",
-  "private": true,
-  "description": "DSH 红队记忆插件：跨会话保留目标上下文与既有结论，避免重复侦察",
+  "version": "0.3.0",
+  "description": "DSH 红队记忆插件：给模型一个可检索的 AI 安全知识库（Milvus + 向量模型 + 重排 + S3）",
   "license": "MIT",
   "author": "fasthei",
   "repository": {
@@ -56,7 +55,10 @@
     "build:lib": "node tools/build-lib.mjs",
     "check:lib": "node tools/build-lib.mjs --check",
     "prepack": "node tools/build-lib.mjs --check",
-    "publish:gh": "node tools/prepare-gh-packages.mjs"
+    "publish:gh": "node tools/prepare-gh-packages.mjs",
+    "test": "node test/memory-flow.mjs && node test/render-smoke.mjs",
+    "test:flow": "node test/memory-flow.mjs",
+    "test:render": "node test/render-smoke.mjs"
   },
   "engines": {
     "node": ">=20"

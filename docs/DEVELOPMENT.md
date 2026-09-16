@@ -63,7 +63,30 @@ patch 条目是 `@deepseek-ai/cordis-plugin-include` 的 **`PatchOptions`**，�
 
 ## 5. 路径与沙箱
 
-- **相对路径的解析基址是 `DSH_HOME`（`~/.dsh`），不是 profile 目录**。
+### 5.1 插件沙箱：**能读任何地方，只能写它自己的默认工作区**（实测）
+
+用一次性探针（host 半边注册一个 `fsprobe` 工具，返回每一步的结果）量到的：
+
+| 操作 | 结果 |
+| --- | --- |
+| `fs.resolve('相对名.json')` | 解析到**插件默认工作区**下（本机是 `/home/kali/桌面/.redteam-memory.json`），**不是** `DSH_HOME` |
+| 写这个相对路径 | ✓ 成功 |
+| 写会话工作区的绝对路径（`/home/kali/项目/DSHairedPlugin/.rtfsprobe.json`） | ✗ `cannot write …: file access denied under workspace-write mode` |
+| 读会话工作区里的文件（`src/host.js`） | ✓ 成功（动态装载器一直靠它） |
+
+推论就是几条实际踩过的坑：
+
+- 插件的**相对路径基址 = 它自己的默认工作区**，与会话工作区、与 `DSH_HOME` 都可能是三个不同的地方。
+  所以落盘位置要**把解析出来的宿主路径显示给用户**（面板上写一行），不要假设它能写进会话工作区。
+- 动态装载器**不要**把诊断文件写进会话工作区：写入被沙箱拒掉，而装载器通常把失败吞在 `try/catch` 里，
+  表现出来就是「插件像是没生效」而其实只是诊断没写出来。要么写相对路径，要么干脆不用文件 ——
+  用工具或 RPC 把诊断交回给模型，这条最稳。
+- 会话工具（`read` / `write`）的权限是**另一套**（本次实测是 `danger-full-access`），所以
+  「我（模型）能写这个文件」不等于「插件的 host 半边能写这个文件」。要验证就写探针，别靠推断。
+
+### 5.2 其它
+
+- **组合 / 配置里的相对路径基址是 `DSH_HOME`（`~/.dsh`），不是 profile 目录**。
   要引用仓库路径就用**绝对路径**，否则会被解析成 `~/.dsh/...` 的错路径。
 - **web profile 里 `hmr` 是 `disabled: true`**，所以 `patchReload: live` 实际不生效。
   **改完宿主组合必须重启 `dsh web`**。

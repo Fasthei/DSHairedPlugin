@@ -14,7 +14,7 @@
     "test:asset-graph": "node packages/asset-graph/test/edge-dedupe.mjs && node packages/asset-graph/test/static-bundle-smoke.mjs && node packages/asset-graph/test/render-smoke.mjs",
     "build": "npm run build:asset-graph && npm run build:attack-matrix && npm run build:memory && npm run build:report",
     "check": "npm run check:asset-graph && npm run check:attack-matrix && npm run check:memory && npm run check:report",
-    "test": "npm run test:asset-graph && npm run test:attack-matrix",
+    "test": "npm run test:asset-graph && npm run test:attack-matrix && npm run test:memory && npm run test:report",
     "build:attack-matrix": "node packages/attack-matrix/tools/build-lib.mjs",
     "check:attack-matrix": "node packages/attack-matrix/tools/build-lib.mjs --check",
     "build:memory": "node packages/memory/tools/build-lib.mjs",
@@ -24,7 +24,9 @@
     "test:asset-graph-edge": "node packages/asset-graph/test/edge-dedupe.mjs",
     "test:asset-graph-static": "node packages/asset-graph/test/static-bundle-smoke.mjs",
     "test:asset-graph-render": "node packages/asset-graph/test/render-smoke.mjs",
-    "test:attack-matrix": "node packages/attack-matrix/test/scan-flow.mjs && node packages/attack-matrix/test/static-bundle-smoke.mjs"
+    "test:attack-matrix": "node packages/attack-matrix/test/scan-flow.mjs && node packages/attack-matrix/test/static-bundle-smoke.mjs",
+    "test:memory": "node packages/memory/test/memory-flow.mjs && node packages/memory/test/render-smoke.mjs",
+    "test:report": "node packages/report/test/docx-smoke.mjs && node packages/report/test/report-flow.mjs && node packages/report/test/render-smoke.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -1,47 +1,121 @@
 # 红队报告 · DSH 插件
 
-把资产图谱与研判结论汇成可交付的报告（Markdown / 其他格式）。
+把一次测试的**证据**汇成一份能交付的报告：**AI 自动撰写**、人工编辑与预览、导出 Word，
+或者反手把成稿导入记忆库。
 
-> **状态：骨架（未实现）**。目录、构建、发布链路都已就绪，`src/` 里是待实现的骨架；
-> 装上去能看到一个占位面板，但还没有实际能力。
+报告的三个证据来源，缺哪个都不会让生成失败（只会在报告来源里说明少了什么）：
 
-## 安装
+| 来源 | 怎么取 | 少了会怎样 |
+|---|---|---|
+| 工作区对话 | `sessions` 快照，压成「用户要求 / 关键操作 / 结果与结论」 | 报告没有过程叙述 |
+| 攻击矩阵命中 | 优先用攻击矩阵插件的 `redteamAttackMatrix` 服务（带技术点名字）；没有就直接读工作区的 `.redteam-attack-matrix.json` | 只有 id 没有名字，仍然可用 |
+| 红队记忆库 | 用记忆插件的 `redteamMemory` 服务，按命中的技术点名与用户要求做检索 | digest 里注明「记忆插件没在运行」 |
 
-```bash
-dsh plugin --profile web add dsh-redteam-report
-# 重启 dsh web
+## 架构
+
+```
+        ┌─ 工作区对话（sessions）
+证据 ────┼─ 攻击矩阵命中（服务 / 存储文件）
+        └─ 记忆库（redteamMemory 服务）
+                    │  按预算裁剪成 digest（默认 48000 字）
+                    ▼
+        collectEvidence() → buildDigest() → llm.stream({provider, model})
+                    │                          ↑ 默认用**当前会话正在用的那个模型**
+                    ▼
+        报告对象（Markdown）── 面板可编辑 / 预览 ──┬─ 导出 md / html / docx
+                    │                              └─ 导入记忆（按 ## 切段）
+                    └─ 落盘 .redteam-report.json
 ```
 
-包自带 `dsh.bundle.patch`，装完自动挂载，不需要手工编辑配置。
+**为什么不用自己配 Key**：撰写走宿主的 `llm` 服务，provider/model 默认取
+`agentDefaultModel.currentSelection()`，也就是你正在对话的那个模型。
 
-## 规划中的能力
+**为什么生成是后台任务**：报告要写几千字，RPC 不能一直挂着。`generate` 立刻返回，
+正文边流边写进报告对象，面板轮询 `snapshot` 就能看到进度与正在长出来的正文。
 
-- 按模板汇总资产、关系、研判结论与排除理由
-- 导出为文件，便于交付与归档
-- 与资产图谱联动：直接读取图谱数据
+**为什么预览走宿主**：面板右侧的 iframe 装的是宿主渲染出来的**完整 HTML 文档**，
+与导出的 HTML / Word 是同一套实现 —— 前端再写一遍 markdown 渲染必然漂移。
+
+## 用法
+
+**给模型用的三个工具**
+
+| 工具 | 用途 |
+|---|---|
+| `report_generate` | 采集证据并撰写一份报告（会等写完），返回 reportId、字数、证据来源与章节 |
+| `report_list` | 列出已有报告（id / 标题 / 字数 / 时间 / 证据规模） |
+| `report_export` | 导出成文件并返回绝对路径（`format`: md / html / docx，默认 docx）——「把这份报告导出成 Word」在对话里直接说 |
+
+**面板**
+
+```
+┌ 顶栏：报告份数 · 字数（未保存）· 证据规模（会话/矩阵/记忆）· 落盘 + 生成进度
+├ 报告：生成 · 新建并生成 · 新建空白 · 保存 · 导出 MD/HTML/Word · 导入记忆 · 删除
+│        报告列表（切换）· 标题 · 左编辑（Markdown）右预览（宿主渲染）
+├ 设置：撰写模型（留空=当前会话默认）· 证据预算 · 路径 · 额外要求
+│        试算证据：把**真正喂给模型的那份 digest** 打出来（含每个会话采到多少条）
+└ 日志：最近操作与错误
+```
+
+**导出**：三个格式都写到磁盘并把**绝对路径回显在面板上**（Word 是二进制，落盘借
+`shell` + `base64 -d`；md / html 走 `fs.writeText`）。
+
+> 为什么不做浏览器下载：动态形态的客户端沙箱只给了 `ctx / React / host / styles / console`，
+> 没有 `document` / `Blob` / `URL`，拼下载链接那条路在动态半边直接不可用。落盘 + 回显路径
+> 在两种形态下都成立。
+
+**导入记忆**：报告按 `##` 切成条目（开头只有一行 H1 的前言不单独成条），标上
+`note` 类型与「报告」标签，来源写成 `报告 · <标题>`，交给 `redteamMemory.add`。
+本地库一定写得进去；向量索引没配好时只记一条「未同步」，配好后在记忆面板点「同步索引」。
+
+## 已知限制
+
+- **报告只能引用证据里出现过的事实**。提示词里明确禁止编造 IP / 端口 / 命令回显 / 数字，
+  但模型仍可能润色过头 —— 所以面板上有「试算证据」这一屏，且导出前人要读一遍。
+- **工作区对话只覆盖进程内的会话**（`sessions` 是内存态）。重启 `dsh web` 之后，早先的会话
+  不在 store 里，采集不到：这时报告的依据只剩攻击矩阵与记忆库。
+- **疑似条目的证据片段不进 digest**（它们多半是关键词撞上的原文），只进判据、目标与次数。
+  想让模型看到某条疑似的原文，先在攻击矩阵面板里把它判成已确认。
+- **docx 是自实现的 ZIP writer（stored 不压缩）**：产物可复现、Word 能开，
+  但没有内嵌字体 / 页眉页脚这类高级排版；要排版请在 Word 里二次编辑。
+- **一次只能跑一个生成任务**。第二个请求会被拒绝，不会排队。
+
+## 版本
+
+**`0.1.0`**（仓库版本）。`src/` 是权威源码，`lib/` 由它生成，因此不存在「仓库版本与运行版本不一致」。
+
+`0.1.0` 是第一个可用版本：证据采集（会话 / 攻击矩阵 / 记忆）、AI 自动撰写、编辑与预览、
+导出 md/html/docx、导入记忆，以及 `report_generate` / `report_list` / `report_export` 三个模型工具。
+
+从资产图谱复制骨架时带来的缺陷（都在这一版修掉了）：
+
+- **客户端 RPC 路径写死成 `/dsh-redteam-asset-graph/rpc`** —— 面板会去打资产图谱的路由，
+  请求全 404，两者同时安装还会读到对方的数据（与资产图谱 README 记的那次事故同一个根因）。
+  现在由生成器按包名填充，渲染测试把**实际请求的 url** 钉住。
+- **静态 head 缺 JSON Schema → ParameterSchemaSpec 的转换**，两个工具会在 apply 时全部注册失败。
 
 ## 开发
 
-本包的 `src/` 是权威源码，`lib/` 由它生成：
-
 ```bash
-npm run build:lib     # 生成 lib/
+npm run build:lib     # 生成 lib/（会把 src/docx.js 内联进 lib/host.js）
 npm run check:lib     # 校验与 src/ 是否漂移（prepack 会跑）
+npm test              # 导出模块 122 项 + 主机侧 102 项 + 客户端渲染 59 项
 ```
 
-改之前请先读仓库的 [../../docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)——
-DSH 插件开发有几条硬约束（静态形态下哪些 API 不存在、组合 patch 的语义、
-沙箱与依赖解析），那里记的每一条都是实测踩出来的。
+主机侧测试不打网络、不落真盘：`llm` 是一个假的流式实现，`fs` / `shell` 是内存实现，
+攻击矩阵与记忆都是假服务。断言的重点是「我们发出去的请求长什么样」与
+**「交给模型的那份材料长什么样」** —— 报告写不好的原因九成在这两处。
 
-骨架里已有的结构：
+`test/report-flow.mjs` 需要解析 `@deepseek-ai/dsh-tools`；解析不到时会**红**并给出修复命令
+（刻意不静默跳过：绿但没跑比红更糟）。
+
+改之前请先读仓库的 [../../docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)。
 
 | 文件 | 说明 |
 |---|---|
 | `src/host.js` | `applyHost` 的**函数体**（函数头/垫片/收尾在 `lib/parts/`，不要重复写） |
+| `src/docx.js` | markdown → 块 / HTML / **Word(.docx，自实现 ZIP + OOXML)**，纯函数、可单测、构建时内联 |
 | `src/client.js` | 客户端半边，以 `return { name, inject, apply }` 结尾 |
 | `lib/parts/` | 生成器模板：垫片与包装都在这里 |
-| `tools/build-lib.mjs` | 生成器 |
+| `tools/build-lib.mjs` | 生成器（含 `/* @DOCX@ */` 占位符的内联步骤） |
 | `cordis.patch.yml` | bundle patch，`dsh plugin add` 靠它自动挂载 |
-
-面板用的 JSON-RPC 路由已由 `lib/parts/host.tail.js` 注册（基址 `/dsh-redteam-report`），
-在 `src/host.js` 里用 `harness.handle('method', fn)` 补句柄，客户端用 `host.call` 调。

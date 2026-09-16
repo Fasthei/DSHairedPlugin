@@ -3885,6 +3885,74 @@ function applyHost(ctx) {
     return function () { a(); b() }
   }, 'redteam-attack-matrix: auto scan + judge')
 
+  // ── 对外服务：报告插件要「命中攻击矩阵的内容」────────────────────────────────
+  // 框架表（技术点名字）只在本插件里；命中详情的存储结构也只有本插件知道。
+  // 与其让报告插件去猜文件格式和 id→名字，不如在这里把「能写进报告的那份数据」直接交出去。
+  // 没有这个服务时报告插件会退回直接读存储文件 —— 那时只有 id，没有名字。
+  ctx.effect(function () {
+    if (typeof ctx.provide !== 'function') return function () {}
+    return ctx.provide('redteamAttackMatrix', {
+      storePath: function () {
+        const list = listWorkspaces()
+        const w = currentWorkspace()
+        return w ? storePathFor(w.path) : ''
+      },
+      names: function () {
+        const out = {}
+        for (const fw of FRAMEWORKS) {
+          const techs = {}
+          for (const t of fw.techniques) techs[t.id] = t.name
+          out[fw.id] = { label: fw.name, short: fw.short || fw.name, source: fw.source || '', techniques: techs }
+        }
+        return out
+      },
+      // 报告能直接用的一份汇总：已确认 / 疑似分开，带名字、判据、打过的目标和证据片段。
+      digest: function () {
+        return withStore(async function () {
+          const loaded = await loadCurrent('')
+          if (!loaded.ok) throw new Error(loaded.error || '拿不到工作区')
+          const st = loaded.store
+          const items = []
+          for (const fw of FRAMEWORKS) {
+            const bucket = st.matrix[fw.id] || {}
+            for (const tech of fw.techniques) {
+              const hits = bucket[tech.id] || {}
+              for (const sid of Object.keys(hits)) {
+                const h = hits[sid]
+                if (!h || h.confidence === 'rejected') continue
+                items.push({
+                  frameworkId: fw.id, frameworkLabel: fw.name, frameworkShort: fw.short || fw.name,
+                  techniqueId: tech.id, techniqueName: tech.name,
+                  sessionId: sid, sessionTitle: h.sessionTitle || '',
+                  confidence: h.confidence === 'confirmed' ? 'confirmed' : 'suspected',
+                  decidedBy: h.decidedBy || '', reason: h.reason || '',
+                  occurrences: h.occurrences || 0, firstAt: h.firstAt || 0, lastAt: h.lastAt || 0,
+                  kind: h.kind || '', matched: (h.matched || []).slice(0, 10), targets: hitTargets(h),
+                  snippets: (h.snippets || []).slice(-3).map(function (x) { return { at: x.at, label: x.label, text: clip(x.text, 400) } }),
+                })
+              }
+            }
+          }
+          // 已确认的排前面，然后按最近发生排：报告要先写实的。
+          items.sort(function (a, b) {
+            return (b.confidence === 'confirmed' ? 1 : 0) - (a.confidence === 'confirmed' ? 1 : 0) || (b.lastAt - a.lastAt)
+          })
+          return {
+            workspacePath: st.workspacePath || '',
+            storePath: storePathFor(st.workspacePath),
+            updatedAt: st.updatedAt || 0,
+            lastScanAt: (st.meta && st.meta.lastScanAt) || 0,
+            scannedSessions: (st.meta && st.meta.scannedSessions) || 0,
+            ignoreSessions: (st.ignoreSessions || []).slice(),
+            confirmed: items.filter(function (x) { return x.confidence === 'confirmed' }).length,
+            suspected: items.filter(function (x) { return x.confidence !== 'confirmed' }).length,
+            items: items,
+          }
+        })
+      },
+    })
+  }, 'redteam-attack-matrix: 对外服务 redteamAttackMatrix')
+
   // 装载后先扫一次，不然要等一个节拍才看到东西。
   Promise.resolve().then(function () { return autoScanOnce() }).catch(function () {})
 

@@ -55,7 +55,11 @@
     "build:lib": "node tools/build-lib.mjs",
     "check:lib": "node tools/build-lib.mjs --check",
     "prepack": "node tools/build-lib.mjs --check",
-    "publish:gh": "node tools/prepare-gh-packages.mjs"
+    "publish:gh": "node tools/prepare-gh-packages.mjs",
+    "test": "node test/docx-smoke.mjs && node test/report-flow.mjs && node test/render-smoke.mjs",
+    "test:docx": "node test/docx-smoke.mjs",
+    "test:flow": "node test/report-flow.mjs",
+    "test:render": "node test/render-smoke.mjs"
   },
   "engines": {
     "node": ">=20"
