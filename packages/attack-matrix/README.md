@@ -6,12 +6,17 @@
 
 **当前支持四套框架**，每套一个页面：
 
-| 框架 | 面向 | 条目 |
-|---|---|---|
-| MITRE ATLAS | AI 系统对抗战术 | 见面板 |
-| MITRE ATT&CK Enterprise | 企业 / IT 面战术技术 | 见面板 |
-| OWASP Top 10 for LLM Applications 2025 | LLM 应用风险 | LLM01–LLM10 |
-| NVIDIA AI Kill Chain | AI 应用攻击阶段 | recon / poison / hijack / persist / iterate-pivot / impact |
+| 框架 | 面向 | 收录 | 数据来源 |
+|---|---|---|---|
+| MITRE ATLAS | AI 系统本身的对抗战术 | 45 技术点 / 16 阶段 | 官方机读数据 `atlas-data` v2026.09 |
+| MITRE ATT&CK Enterprise | 企业 / IT 面战术技术 | 46 技术点 / 15 阶段 | MITRE 官方 TAXII 2.1（企业版 collection） |
+| OWASP Top 10 for LLM Applications 2025 | LLM 应用风险 | LLM01–LLM10 | 官方仓库 `2_0_vulns` |
+| NVIDIA AI Kill Chain | AI 应用攻击阶段 | 29 技术点 / 6 阶段 | NVIDIA 官方博客（2025-09-11, Rich Harang） |
+
+ATLAS 和 ATT&CK 是两套东西：ATLAS 打 AI 系统本身，ATT&CK 打企业 IT 面。
+红队实操里两者会同时命中（先扫资产、拿凭据，再去打模型），所以并列成两个页面
+而不是合并。两个大框架都只收了与「AI/LLM 红队对话」相关的子集，不是全量目录 ——
+矩阵的价值在于缺口准，不在于条目多。
 
 ## 它怎么工作
 

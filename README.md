@@ -6,7 +6,7 @@
 | 插件 | 包名 | 用途 | 状态 |
 |---|---|---|---|
 | [资产图谱](packages/asset-graph/) | `dsh-redteam-asset-graph` | 目标资产自动收集、关联、可视化，模型参与研判 | ✅ 已发布 |
-| [攻击矩阵](packages/attack-matrix/) | 待定 | 侦察结果映射到攻击矩阵，标出已覆盖/缺口 | 🚧 骨架 |
+| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | 🧪 已实现，待发布 |
 | [记忆](packages/memory/) | 待定 | 跨会话保留目标上下文，避免重复侦察 | 🚧 骨架 |
 | [报告](packages/report/) | 待定 | 把图谱与研判结论汇成可交付报告 | 🚧 骨架 |
 
