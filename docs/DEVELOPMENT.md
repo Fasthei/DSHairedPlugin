@@ -101,3 +101,23 @@ npm run check              # 校验有没有漂移（prepack 会跑，漂移则�
 3. 改 `cordis.patch.yml` 里的 `id` 与 `name`
 4. `npm run build` 生成 `lib/`，`npm run check` 确认一致
 5. 在 profile 里装一次验证：`dsh plugin --profile web add <包名>`，重启后看工具与面板
+
+## 8. 跑测试：绿的不一定是跑了
+
+**主机侧测试要解析 `@deepseek-ai/dsh-tools`。解析不到时它打印一句「跳过」然后 `exit 0`。**
+
+于是 `npm test` 会全绿，而主机侧一条断言都没执行 —— 本轮就真实踩到过：攻击矩阵的
+`scan-flow.mjs` 与资产图谱的主机侧测试都长期处于这种状态，看起来和周密通过没有区别。
+所以**先确认项数**，再相信绿色：
+
+```bash
+DSH_NM="$(readlink -f "$(command -v dsh)" | sed 's#/node_modules/.*#/node_modules/@deepseek-ai#')"
+for p in asset-graph attack-matrix; do
+  mkdir -p "packages/$p/node_modules/@deepseek-ai"
+  ln -sfn "$DSH_NM/dsh-tools" "packages/$p/node_modules/@deepseek-ai/dsh-tools"
+done
+npm test        # 资产图谱 15 + 攻击矩阵 host 84 / client 85
+```
+
+`node_modules/` 在 `.gitignore` 里，软链不进仓库。客户端侧的冒烟测试不需要这个依赖，
+所以它一直是真跑的 —— 这也是为什么「有测试」不等于「有覆盖」。
