@@ -39,9 +39,24 @@ dsh --profile web --dump-config | tail -4
 **装完还要做一件事**：填 Jina API Key。面板 → **设置 → Jina（必填）**。没填时「关联分析」
 按钮禁用——本插件的检索与关联分析依赖 Jina。填完可以点「测试连接」确认。
 
-> **发布**：`npm publish` 需要你自己的 npm 账号（`npm login` 后执行）。包名
-> `dsh-redteam-asset-graph` 在 registry 上未被占用。想先本地验证，可 `npm pack`
-> 出 tarball 再 `dsh plugin --profile web add ./dsh-redteam-asset-graph-7.9.5.tgz`。
+### 其他安装方式
+
+```bash
+# 指定版本
+dsh plugin --profile web add dsh-redteam-asset-graph@7.9.5
+
+# 从仓库直接装（开发用；仍是同一套 bundle 机制）
+dsh plugin --profile web add github:Fasthei/DSHairedPlugin
+
+# 本地 tarball
+npm pack && dsh plugin --profile web add ./dsh-redteam-asset-graph-7.9.5.tgz
+
+# 卸载（bundles 会自动回收该行）
+dsh plugin --profile web remove dsh-redteam-asset-graph
+```
+
+> **发布（维护者）**：`npm publish`。`prepack` 会先跑 `build-lib --check`，
+> `lib/` 与 `src/` 不一致时**拒绝发布**，避免发出漂移的包。
 
 ---
 
@@ -192,7 +207,9 @@ npm test        # 或 node test/render-smoke.mjs
 
 ## 版本
 
-**`7.9.5`**。本版包含候选池结算（研判结束后，把本轮送出、且未被 `asset_record` 采纳的候选出池；模型这一轮若没有任何推理/输出，则把候选退回待研判，重推上限 3 次以防空转）、面板的「待验证」确认按钮与详情卡放大/展开，以及 `lib/` 常驻插件包与 npm 分发要件（`dsh.bundle.patch`）。
+**`7.9.5`**（已发布到 npm：`dsh-redteam-asset-graph@7.9.5`）。
+
+本版包含候选池结算（研判结束后，把本轮送出、且未被 `asset_record` 采纳的候选出池；模型这一轮若没有任何推理/输出，则把候选退回待研判，重推上限 3 次以防空转）、面板的「待验证」确认按钮与详情卡放大/展开，以及 `lib/` 常驻插件包与 npm 分发要件（`dsh.bundle.patch`）。
 
 `src/` 是权威源码，`lib/` 由它生成，因此**不存在「仓库版本与运行版本不一致」**。版本历史见 git log。
 
