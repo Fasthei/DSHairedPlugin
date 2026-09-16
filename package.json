@@ -1,9 +1,25 @@
 {
   "name": "dsh-redteam-asset-graph",
   "version": "7.9.5",
-  "private": true,
+  "description": "DSH 红队资产图谱插件包：把目标资产自动收集、关联、可视化，并让模型参与研判（面板 + 三个模型工具 + Jina 检索两阶段关联分析）",
   "license": "MIT",
-  "description": "DSH 红队测试资产图谱：动态 Cordis 插件源码（src/）+ 常驻插件包（lib/）",
+  "author": "fasthei",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fasthei/DSHairedPlugin.git"
+  },
+  "homepage": "https://github.com/Fasthei/DSHairedPlugin#readme",
+  "bugs": {
+    "url": "https://github.com/Fasthei/DSHairedPlugin/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "redteam",
+    "asset-graph"
+  ],
   "type": "module",
   "main": "lib/host.js",
   "exports": {
@@ -15,29 +31,37 @@
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "lib",
+    "src",
+    "tools",
+    "test",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
   "dsh": {
-    "kind": "resident",
-    "idPrefix": "asset",
-    "dynamic": {
-      "hostHalf": "src/host.js",
-      "clientHalf": "src/client.js",
-      "requires": [
-        "Jina API Key（面板 设置 → Jina，必填）"
-      ]
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     },
     "client": {
-      "inject": [
-        "@deepseek-ai/dsh-client-ui-renderer",
-        "@deepseek-ai/dsh-client-ui-sidebar"
-      ],
       "platform": "web"
+    },
+    "dynamic": {
+      "hostHalf": "src/host.js",
+      "clientHalf": "src/client.js"
     }
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": "*"
   },
   "scripts": {
+    "build:lib": "node tools/build-lib.mjs",
+    "check:lib": "node tools/build-lib.mjs --check",
     "test": "node test/render-smoke.mjs",
-    "build:lib": "node tools/build-lib.mjs"
+    "prepack": "node tools/build-lib.mjs --check"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

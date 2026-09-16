@@ -13,3 +13,11 @@ node_modules/
 *.log
 .DS_Store
 .env
+
+# ── 打包产物（本地生成，不该提交）──
+*.tgz
+.npm-cache/
+
+# ── 临时校验目录 ──
+.packtest/
+.check/

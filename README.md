@@ -134,6 +134,49 @@ dsh --profile web --dump-config | tail -4
 `--dump-config` 用的是与启动同一套 patch 语义（`applyEntryPatches`），所以 dump 对了、
 启动时就对了。
 
+### 用 npm 分发（给别人装）
+
+上面的「手工加一行」只适合本机开发。要让**别人**也能用，走官方的 bundle 机制：
+本包已声明 `dsh.bundle.patch`，装了就会被自动挂载，无需手工编辑任何配置。
+
+```bash
+# 用户侧：一条命令
+dsh plugin --profile web add dsh-redteam-asset-graph
+# 然后重启 dsh web（web profile 的 hmr 是 disabled，组合改动不会热生效）
+```
+
+这背后的机制（`dsh` 官方行为）：
+
+1. `dsh plugin` 是 **pnpm 的转发器**，在 profile 目录里执行 `pnpm add <包>`，
+   于是包装进了 profile 的 `node_modules`；
+2. 随后 `reconcilePlugins` 检查依赖是否**声明了 `dsh.bundle.patch`**，
+   是则把包名并入 `dsh.profile.bundles`；
+3. 启动时按层叠加：各 bundle 的 patch → profile 的 `cordis.patch.yml`
+   → `$DSH_HOME/cordis.patch.yml` → `--patch` 覆盖层。
+
+所以**同一个包能省掉手工那一步**。`cordis.patch.yml` 的内容就是一行 `insert`：
+
+```yaml
+- insert:
+    - id: redteam-asset-graph
+      name: 'dsh-redteam-asset-graph'
+```
+
+> 发布到 npm 需要你自己的 npm 账号（`npm login` 后 `npm publish`）。
+> 包名 `dsh-redteam-asset-graph` 在 registry 上未被占用。
+> 想先本地验证可以 `npm pack` 出 tarball，再用
+> `dsh plugin --profile web add ./dsh-redteam-asset-graph-7.9.5.tgz` 装。
+
+### 两种挂载方式怎么选
+
+| | 仓库路径挂载 | npm 包挂载 |
+|---|---|---|
+| 配置 | 手工往 `cordis.patch.yml` 加 `insert` | 无（包自带 patch） |
+| 适合 | 本机改代码 | 分发给别人 |
+| 改源码后 | 重启即生效 | 需重新发布/重装 |
+
+**别同时用**：两种都指向本插件，会注册重复的行与重复的工具。
+
 ---
 
 ## 配置
