@@ -56,7 +56,10 @@
     "build:lib": "node tools/build-lib.mjs",
     "check:lib": "node tools/build-lib.mjs --check",
     "prepack": "node tools/build-lib.mjs --check",
-    "publish:gh": "node tools/prepare-gh-packages.mjs"
+    "publish:gh": "node tools/prepare-gh-packages.mjs",
+    "test": "node test/scan-flow.mjs && node test/static-bundle-smoke.mjs",
+    "test:scan": "node test/scan-flow.mjs",
+    "test:static": "node test/static-bundle-smoke.mjs"
   },
   "engines": {
     "node": ">=20"

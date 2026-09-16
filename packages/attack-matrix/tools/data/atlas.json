@@ -1,0 +1,938 @@
+{
+  "framework": "MITRE ATLAS",
+  "version_note": "MITRE ATLAS v2026.09 (ATLAS data collection modified-date 2026-09-15, release commit 3259f38 dated 2026-09-10; that release contains 1 matrix, 16 tactics, 120 techniques, 88 sub-techniques, 40 mitigations and 73 case studies). Source: official machine-readable dataset mitre-atlas/atlas-data, dist/v6/ATLAS-2026.09.yaml - https://github.com/mitre-atlas/atlas-data/blob/main/dist/v6/ATLAS-2026.09.yaml (the file that dist/v6/ATLAS-latest.yaml points to). Fetched from this sandbox via the GitHub contents API because raw.githubusercontent.com was unreachable; atlas.mitre.org is a JavaScript single-page app that returned only its shell (no data payload), so the official GitHub data file was used as the authoritative source. Sub-technique names use the framework's Parent Technique: Sub-technique form.",
+  "tactics": [
+    {
+      "id": "AML.TA0002",
+      "name": "Reconnaissance",
+      "description": "The adversary gathers information about the AI system that can be used to plan future operations."
+    },
+    {
+      "id": "AML.TA0003",
+      "name": "Resource Development",
+      "description": "The adversary establishes resources, capabilities, and infrastructure to support AI-targeted operations."
+    },
+    {
+      "id": "AML.TA0004",
+      "name": "Initial Access",
+      "description": "The adversary gains an initial foothold into the AI system or the environment it is connected to."
+    },
+    {
+      "id": "AML.TA0005",
+      "name": "Execution",
+      "description": "The adversary runs malicious instructions or code through AI artifacts, prompts, or agent tools."
+    },
+    {
+      "id": "AML.TA0006",
+      "name": "Persistence",
+      "description": "The adversary maintains a foothold by manipulating AI models, data, prompts, memory, or agent configuration."
+    },
+    {
+      "id": "AML.TA0007",
+      "name": "Defense Evasion",
+      "description": "The adversary avoids detection by AI guardrails, input filters, and AI-enabled security software."
+    },
+    {
+      "id": "AML.TA0008",
+      "name": "Discovery",
+      "description": "The adversary explores the AI environment to learn about models, prompts, data, tools, and agent capabilities."
+    },
+    {
+      "id": "AML.TA0009",
+      "name": "Collection",
+      "description": "The adversary gathers AI artifacts and sensitive data reachable through AI services and their tools."
+    },
+    {
+      "id": "AML.TA0010",
+      "name": "Exfiltration",
+      "description": "The adversary steals AI artifacts, model internals, prompts, or data through AI channels."
+    },
+    {
+      "id": "AML.TA0011",
+      "name": "Impact",
+      "description": "The adversary manipulates, degrades, or destroys AI systems, data, and confidence in their outputs."
+    },
+    {
+      "id": "AML.TA0012",
+      "name": "Privilege Escalation",
+      "description": "The adversary gains higher-level permissions through AI systems, agents, or their host environments."
+    },
+    {
+      "id": "AML.TA0013",
+      "name": "Credential Access",
+      "description": "The adversary steals credentials stored in, or reachable through, AI systems and agent tooling."
+    },
+    {
+      "id": "AML.TA0014",
+      "name": "Command and Control",
+      "description": "The adversary communicates with compromised AI systems in order to control them."
+    },
+    {
+      "id": "AML.TA0015",
+      "name": "Lateral Movement",
+      "description": "The adversary moves through the environment by abusing AI systems, agents, and their connected tools."
+    },
+    {
+      "id": "AML.TA0000",
+      "name": "AI Model Access",
+      "description": "The adversary obtains some level of access to an AI model, from inference API access to full model weights."
+    },
+    {
+      "id": "AML.TA0001",
+      "name": "AI Attack Adaptation",
+      "description": "The adversary adapts knowledge and capabilities into attack-ready payloads tailored to the target AI system."
+    }
+  ],
+  "techniques": [
+    {
+      "id": "AML.T0001",
+      "name": "Search Open AI Vulnerability Analysis",
+      "tactic_ids": [
+        "AML.TA0002"
+      ],
+      "description": "Searching public research, papers, and vulnerability write-ups for known attacks against the target AI model or system.",
+      "detect_keywords": [
+        "vulnerability",
+        "cve",
+        "advisory",
+        "arxiv",
+        "论文",
+        "已知漏洞",
+        "漏洞分析",
+        "公开研究"
+      ],
+      "detect_hints": "The transcript shows the tester researching published attacks, CVEs, or papers about the target model family before attacking it."
+    },
+    {
+      "id": "AML.T0006",
+      "name": "Active Scanning",
+      "tactic_ids": [
+        "AML.TA0002"
+      ],
+      "description": "Directly probing publicly reachable AI systems and endpoints to identify live, misconfigured, or vulnerable targets.",
+      "detect_keywords": [
+        "nmap",
+        "port scan",
+        "shodan",
+        "censys",
+        "端口扫描",
+        "资产测绘"
+      ],
+      "detect_hints": "The tester runs network or port scanning, or queries internet-wide scan databases, to find reachable AI endpoints."
+    },
+    {
+      "id": "AML.T0006.002",
+      "name": "Active Scanning: Scan for Exposed AI Infrastructure",
+      "tactic_ids": [
+        "AML.TA0002"
+      ],
+      "description": "Scanning hosts and well-known ports to locate self-hosted AI runtimes, model-serving endpoints, and agent infrastructure.",
+      "detect_keywords": [
+        "ollama",
+        "vllm",
+        "推理服务端口",
+        "暴露的推理服务",
+        "text-generation-inference",
+        "model server",
+        "triton"
+      ],
+      "detect_hints": "The transcript shows probing of default AI service ports or API paths such as /v1/models, Ollama 11434, or vLLM endpoints."
+    },
+    {
+      "id": "AML.T0014",
+      "name": "Discover AI Model Family",
+      "tactic_ids": [
+        "AML.TA0008"
+      ],
+      "description": "Fingerprinting which model or model family a system uses, in order to tailor later attacks.",
+      "detect_keywords": [
+        "model fingerprint",
+        "identify the model",
+        "which model are you",
+        "model family",
+        "模型指纹",
+        "识别模型",
+        "你是什么模型"
+      ],
+      "detect_hints": "The tester probes responses or metadata to determine the underlying model or vendor."
+    },
+    {
+      "id": "AML.T0015",
+      "name": "Evade AI Model",
+      "tactic_ids": [
+        "AML.TA0004",
+        "AML.TA0007",
+        "AML.TA0011"
+      ],
+      "description": "Crafting inputs or deepfakes that cause an AI model to misclassify or fail, evading AI-based detection or authentication.",
+      "detect_keywords": [
+        "evade",
+        "misclassif",
+        "false negative",
+        "fool the detector",
+        "bypass the classifier",
+        "绕过检测",
+        "规避模型",
+        "逃逸"
+      ],
+      "detect_hints": "The tester measures whether modified inputs slip past a classifier, filter, or biometric check, typically reporting a drop in detection rate."
+    },
+    {
+      "id": "AML.T0016.000",
+      "name": "Obtain Capabilities: Adversarial AI Attack Implementations",
+      "tactic_ids": [
+        "AML.TA0003"
+      ],
+      "description": "Obtaining or reusing open-source implementations of AI attacks such as adversarial-example or LLM testing frameworks.",
+      "detect_keywords": [
+        "garak",
+        "pyrit",
+        "adversarial robustness toolbox",
+        "foolbox",
+        "cleverhans",
+        "promptfoo",
+        "开源攻击实现",
+        "攻击工具库"
+      ],
+      "detect_hints": "The transcript shows the tester installing or invoking a known adversarial-AI or LLM red-team library instead of hand-crafting the attack."
+    },
+    {
+      "id": "AML.T0020",
+      "name": "Training Data Poisoning",
+      "tactic_ids": [
+        "AML.TA0006"
+      ],
+      "description": "Manipulating training or fine-tuning data to bias, degrade, or backdoor the resulting model.",
+      "detect_keywords": [
+        "training data poisoning",
+        "fine-tuning data",
+        "poisoned dataset",
+        "data poisoning",
+        "label flipping",
+        "训练数据投毒",
+        "数据投毒",
+        "微调数据污染"
+      ],
+      "detect_hints": "The tester injects or proposes poisoned samples into a training or fine-tuning corpus and measures the resulting behavior shift."
+    },
+    {
+      "id": "AML.T0024.000",
+      "name": "Exfiltration via AI Inference API: Infer Training Data Membership",
+      "tactic_ids": [
+        "AML.TA0010"
+      ],
+      "description": "Inferring whether specific samples were present in a model's training data, leaking privacy-sensitive membership information.",
+      "detect_keywords": [
+        "membership inference",
+        "shadow model",
+        "confidence score",
+        "training set membership",
+        "成员推断",
+        "影子模型",
+        "置信度分析"
+      ],
+      "detect_hints": "The tester measures confidence or loss differences to decide whether a specific record was part of the training data."
+    },
+    {
+      "id": "AML.T0024.001",
+      "name": "Exfiltration via AI Inference API: Invert AI Model",
+      "tactic_ids": [
+        "AML.TA0010"
+      ],
+      "description": "Reconstructing training data by strategically querying the confidence scores exposed by an inference API.",
+      "detect_keywords": [
+        "model inversion",
+        "reconstruct training data",
+        "confidence scores",
+        "gradient leakage",
+        "模型反演",
+        "重建训练数据",
+        "梯度泄露"
+      ],
+      "detect_hints": "The tester queries the API repeatedly in order to reconstruct features or samples from the training data."
+    },
+    {
+      "id": "AML.T0024.002",
+      "name": "Exfiltration via AI Inference API: Extract AI Model",
+      "tactic_ids": [
+        "AML.TA0010"
+      ],
+      "description": "Querying a model to build a dataset and train a functional clone that mimics the victim's model.",
+      "detect_keywords": [
+        "model extraction",
+        "model stealing",
+        "clone the model",
+        "surrogate model",
+        "模型窃取",
+        "模型抽取",
+        "蒸馏克隆",
+        "代理模型"
+      ],
+      "detect_hints": "The tester harvests input and output pairs at scale with the stated goal of training a copy of the model."
+    },
+    {
+      "id": "AML.T0029",
+      "name": "Denial of AI Service",
+      "tactic_ids": [
+        "AML.TA0011"
+      ],
+      "description": "Flooding or overloading an AI service with requests or expensive inputs in order to degrade or shut it down.",
+      "detect_keywords": [
+        "denial of service",
+        "dos",
+        "overload",
+        "resource exhaustion",
+        "death by query",
+        "拒绝服务",
+        "算力耗尽",
+        "服务不可用"
+      ],
+      "detect_hints": "The tester sends high volumes or computationally expensive prompts to exhaust the service."
+    },
+    {
+      "id": "AML.T0034",
+      "name": "Cost Harvesting",
+      "tactic_ids": [
+        "AML.TA0011"
+      ],
+      "description": "Driving up the victim's AI service costs through high-volume or high-complexity queries and agent activity.",
+      "detect_keywords": [
+        "token usage",
+        "expensive queries",
+        "budget exhaustion",
+        "denial of wallet",
+        "成本消耗",
+        "代币消耗",
+        "费用攻击",
+        "钱包拒绝服务"
+      ],
+      "detect_hints": "The tester's goal is financial: maximizing tokens, tool calls, or agent iterations to inflate the victim's bill."
+    },
+    {
+      "id": "AML.T0043.000",
+      "name": "Craft Adversarial Data: White-Box Optimization",
+      "tactic_ids": [
+        "AML.TA0001"
+      ],
+      "description": "Optimizing adversarial inputs directly against a fully known target model for maximum effect.",
+      "detect_keywords": [
+        "white-box",
+        "fgsm",
+        "pgd",
+        "gradient",
+        "perturbation",
+        "白盒攻击",
+        "梯度攻击",
+        "对抗扰动"
+      ],
+      "detect_hints": "The tester has model weights or gradients and optimizes a perturbation directly against them."
+    },
+    {
+      "id": "AML.T0043.001",
+      "name": "Craft Adversarial Data: Black-Box Optimization",
+      "tactic_ids": [
+        "AML.TA0001"
+      ],
+      "description": "Optimizing adversarial inputs through repeated queries to a model that is only reachable via an API.",
+      "detect_keywords": [
+        "black-box",
+        "query-based",
+        "hopskipjump",
+        "boundary attack",
+        "query budget",
+        "黑盒攻击",
+        "查询式攻击",
+        "查询次数"
+      ],
+      "detect_hints": "The tester iteratively queries the API, tracking a query budget, to evolve an adversarial input."
+    },
+    {
+      "id": "AML.T0043.004",
+      "name": "Craft Adversarial Data: Insert Backdoor Trigger",
+      "tactic_ids": [
+        "AML.TA0001"
+      ],
+      "description": "Adding a specific trigger pattern to inputs that activates a backdoor previously implanted in a model.",
+      "detect_keywords": [
+        "backdoor",
+        "trigger pattern",
+        "trojan",
+        "implanted trigger",
+        "后门",
+        "触发器",
+        "木马模型",
+        "投毒触发"
+      ],
+      "detect_hints": "The tester checks whether a rare trigger token or pattern flips the model to attacker-controlled output."
+    },
+    {
+      "id": "AML.T0051",
+      "name": "LLM Prompt Injection",
+      "tactic_ids": [
+        "AML.TA0005"
+      ],
+      "description": "Crafting malicious prompts that make an LLM disregard its original instructions and follow the adversary's instructions instead.",
+      "detect_keywords": [
+        "prompt injection",
+        "ignore previous instructions",
+        "ignore all previous",
+        "override instructions",
+        "system prompt override",
+        "提示词注入",
+        "忽略之前的指令",
+        "越权指令"
+      ],
+      "detect_hints": "The transcript contains instructions telling the model to disregard prior instructions or to adopt an attacker-supplied role."
+    },
+    {
+      "id": "AML.T0051.000",
+      "name": "LLM Prompt Injection: Direct",
+      "tactic_ids": [
+        "AML.TA0005"
+      ],
+      "description": "Injecting malicious prompts directly as a user of the LLM in order to hijack or misuse the model.",
+      "detect_keywords": [
+        "direct prompt injection",
+        "as the user",
+        "user turn",
+        "chat input",
+        "直接注入",
+        "直接提示词注入",
+        "用户输入注入"
+      ],
+      "detect_hints": "The tester types the injection payload directly into the chat as the user's own message."
+    },
+    {
+      "id": "AML.T0051.001",
+      "name": "LLM Prompt Injection: Indirect",
+      "tactic_ids": [
+        "AML.TA0005"
+      ],
+      "description": "Injecting prompts indirectly through documents, emails, websites, or other data the LLM or agent ingests.",
+      "detect_keywords": [
+        "indirect prompt injection",
+        "poisoned document",
+        "malicious webpage",
+        "retrieved content",
+        "injected pdf",
+        "间接提示词注入",
+        "文档注入",
+        "网页注入"
+      ],
+      "detect_hints": "The payload arrives inside retrieved or fetched content rather than from the user, and the model then acts on it."
+    },
+    {
+      "id": "AML.T0051.002",
+      "name": "LLM Prompt Injection: Triggered",
+      "tactic_ids": [
+        "AML.TA0005"
+      ],
+      "description": "Triggering a previously planted prompt injection through a specific user action or event in the environment.",
+      "detect_keywords": [
+        "triggered injection",
+        "trigger phrase",
+        "on next request",
+        "when the user asks",
+        "activation trigger",
+        "触发式注入",
+        "触发词",
+        "条件触发"
+      ],
+      "detect_hints": "Injected instructions lie dormant until a defined keyword, event, or later conversation turn activates them."
+    },
+    {
+      "id": "AML.T0053",
+      "name": "AI Agent Tool Invocation",
+      "tactic_ids": [
+        "AML.TA0005",
+        "AML.TA0012",
+        "AML.TA0015"
+      ],
+      "description": "Using access to an AI agent to invoke its connected tools, extending the adversary's reach and privileges.",
+      "detect_keywords": [
+        "tool call",
+        "function call",
+        "invoke tool",
+        "agent tool",
+        "mcp server",
+        "工具调用",
+        "函数调用",
+        "调用插件"
+      ],
+      "detect_hints": "The transcript shows the agent being steered into calling a tool such as email, shell, database, or file access."
+    },
+    {
+      "id": "AML.T0054",
+      "name": "LLM Jailbreak",
+      "tactic_ids": [
+        "AML.TA0007",
+        "AML.TA0012"
+      ],
+      "description": "Inducing an LLM to ignore or override its safety alignment and guardrails in order to produce withheld outputs.",
+      "detect_keywords": [
+        "jailbreak",
+        "roleplay as",
+        "no restrictions",
+        "bypass safety",
+        "越狱",
+        "角色扮演绕过",
+        "解除限制",
+        "绕过安全策略"
+      ],
+      "detect_hints": "The tester uses personas, fictional framing, or refusal-suppression prompts to obtain content the model would normally refuse."
+    },
+    {
+      "id": "AML.T0056",
+      "name": "Extract LLM System Prompt",
+      "tactic_ids": [
+        "AML.TA0010"
+      ],
+      "description": "Extracting an LLM system prompt through prompt injection or from configuration files.",
+      "detect_keywords": [
+        "leak the system prompt",
+        "extract prompt",
+        "prompt leaking",
+        "show me your instructions",
+        "print your system message",
+        "泄露系统提示词",
+        "提取提示词",
+        "打印系统消息"
+      ],
+      "detect_hints": "The tester works to obtain the exact system prompt text, often as a headline finding."
+    },
+    {
+      "id": "AML.T0057",
+      "name": "LLM Data Leakage",
+      "tactic_ids": [
+        "AML.TA0010"
+      ],
+      "description": "Crafting prompts that induce an LLM to reveal private user data, proprietary training data, or other users' information.",
+      "detect_keywords": [
+        "data leakage",
+        "leak sensitive",
+        "pii",
+        "other users",
+        "training data leak",
+        "数据泄露",
+        "敏感信息",
+        "个人信息泄露"
+      ],
+      "detect_hints": "The model returns secrets, personal data, or another tenant's content in response to the tester's prompts."
+    },
+    {
+      "id": "AML.T0062",
+      "name": "Discover LLM Hallucinations",
+      "tactic_ids": [
+        "AML.TA0008"
+      ],
+      "description": "Prompting the model to surface hallucinated packages, URLs, or entities that can later be registered or published.",
+      "detect_keywords": [
+        "hallucinat",
+        "made up package",
+        "nonexistent package",
+        "fake url",
+        "slopsquatting",
+        "幻觉",
+        "虚假包名",
+        "不存在的链接"
+      ],
+      "detect_hints": "The tester collects fabricated package names, domains, or references the model invents, as future attack targets."
+    },
+    {
+      "id": "AML.T0064",
+      "name": "Gather RAG-Indexed Targets",
+      "tactic_ids": [
+        "AML.TA0002"
+      ],
+      "description": "Identifying the external data sources indexed by a retrieval-augmented generation system in order to target them.",
+      "detect_keywords": [
+        "knowledge base",
+        "pinecone",
+        "weaviate",
+        "向量库",
+        "知识库"
+      ],
+      "detect_hints": "The tester enumerates or reasons about the documents, vector store, or knowledge base that the RAG pipeline retrieves from."
+    },
+    {
+      "id": "AML.T0068",
+      "name": "LLM Prompt Obfuscation",
+      "tactic_ids": [
+        "AML.TA0007"
+      ],
+      "description": "Hiding or encoding prompts so that humans, guardrails, or detection mechanisms fail to notice them.",
+      "detect_keywords": [
+        "base64",
+        "encoded payload",
+        "homoglyph",
+        "invisible text",
+        "zero-width",
+        "编码绕过",
+        "隐藏文本",
+        "混淆提示词"
+      ],
+      "detect_hints": "The payload is encoded, split, or rendered invisibly so filters and human reviewers miss it while the model still parses it."
+    },
+    {
+      "id": "AML.T0069.002",
+      "name": "Discover LLM System Information: System Prompt",
+      "tactic_ids": [
+        "AML.TA0008"
+      ],
+      "description": "Learning the system instructions given to an LLM in order to understand its capabilities and circumvent its guardrails.",
+      "detect_keywords": [
+        "system prompt",
+        "system instruction",
+        "initial instructions",
+        "reveal your prompt",
+        "repeat the text above",
+        "系统提示词",
+        "系统指令",
+        "初始设定"
+      ],
+      "detect_hints": "The tester asks the model to disclose, repeat, or paraphrase the instructions it was configured with."
+    },
+    {
+      "id": "AML.T0070",
+      "name": "RAG Poisoning",
+      "tactic_ids": [
+        "AML.TA0006"
+      ],
+      "description": "Injecting malicious content into a retrieval index so it surfaces in future RAG search results and alters model behavior.",
+      "detect_keywords": [
+        "rag poisoning",
+        "poison the index",
+        "vector store injection",
+        "retrieval poisoning",
+        "malicious document",
+        "索引污染",
+        "知识库投毒",
+        "检索库投毒"
+      ],
+      "detect_hints": "The tester plants crafted documents in the retrieval corpus and confirms the assistant later cites or obeys them."
+    },
+    {
+      "id": "AML.T0077",
+      "name": "LLM Response Rendering",
+      "tactic_ids": [
+        "AML.TA0010"
+      ],
+      "description": "Inducing the LLM to emit markdown or HTML that makes the victim's client fetch an attacker-controlled URL, exfiltrating data.",
+      "detect_keywords": [
+        "markdown image",
+        "![](",
+        "html injection",
+        "exfil via image",
+        "webhook",
+        "图片外带",
+        "markdown外链",
+        "渲染外带"
+      ],
+      "detect_hints": "The transcript shows private data encoded into an image URL, link, or HTML fragment that the client will render."
+    },
+    {
+      "id": "AML.T0080",
+      "name": "AI Agent Context Poisoning",
+      "tactic_ids": [
+        "AML.TA0006"
+      ],
+      "description": "Manipulating an AI agent's LLM context, memory, or thread so that its behavior changes persistently.",
+      "detect_keywords": [
+        "context poisoning",
+        "add to memory",
+        "remember this",
+        "persist in context",
+        "conversation memory",
+        "上下文投毒",
+        "写入记忆",
+        "持久记忆"
+      ],
+      "detect_hints": "The tester gets the agent to store an instruction in memory, or relies on earlier turns to keep influencing later ones."
+    },
+    {
+      "id": "AML.T0083",
+      "name": "Credentials from AI Agent Configuration",
+      "tactic_ids": [
+        "AML.TA0013"
+      ],
+      "description": "Reading API keys, tokens, and connection strings stored in an AI agent's configuration.",
+      "detect_keywords": [
+        "api key",
+        ".env",
+        "connection string",
+        "agent config",
+        "密钥",
+        "访问令牌",
+        "配置文件凭据",
+        "连接字符串"
+      ],
+      "detect_hints": "The tester finds credentials in agent configuration files, environment variables, or tool settings."
+    },
+    {
+      "id": "AML.T0084",
+      "name": "Discover AI Agent Configuration",
+      "tactic_ids": [
+        "AML.TA0008"
+      ],
+      "description": "Discovering an AI agent's configuration, including the tools and services it can reach.",
+      "detect_keywords": [
+        "agent config",
+        "what tools do you have",
+        "list your tools",
+        "agent.yaml",
+        "config file",
+        "智能体配置",
+        "有哪些工具",
+        "配置文件"
+      ],
+      "detect_hints": "The tester asks the agent what tools it has access to, or reads its configuration file or dashboard."
+    },
+    {
+      "id": "AML.T0085",
+      "name": "Data from AI Services",
+      "tactic_ids": [
+        "AML.TA0009"
+      ],
+      "description": "Collecting proprietary or sensitive data through an organization's AI services, RAG stores, and agent tools.",
+      "detect_keywords": [
+        "rag database",
+        "internal documents",
+        "confluence",
+        "sharepoint",
+        "knowledge store",
+        "内部文档",
+        "检索数据",
+        "知识库数据"
+      ],
+      "detect_hints": "The tester pulls internal documents or records through the assistant that a normal user could not reach directly."
+    },
+    {
+      "id": "AML.T0086",
+      "name": "Exfiltration via AI Agent Tool Invocation",
+      "tactic_ids": [
+        "AML.TA0010"
+      ],
+      "description": "Using an agent's write-capable tools to send sensitive data to an attacker-controlled destination.",
+      "detect_keywords": [
+        "exfiltrate via tool",
+        "send email to",
+        "create document",
+        "upload to",
+        "post to webhook",
+        "工具外带",
+        "通过工具外发",
+        "写入外部"
+      ],
+      "detect_hints": "The tester encodes stolen data into the parameters of a legitimate write tool such as email, docs, or CRM."
+    },
+    {
+      "id": "AML.T0092",
+      "name": "Manipulate User LLM Chat History",
+      "tactic_ids": [
+        "AML.TA0007"
+      ],
+      "description": "Editing or deleting a user's LLM chat history to conceal the adversary's changes or probing.",
+      "detect_keywords": [
+        "chat history",
+        "delete conversation",
+        "clear history",
+        "edit message",
+        "conversation log",
+        "聊天记录",
+        "删除会话",
+        "历史记录篡改"
+      ],
+      "detect_hints": "The tester modifies, deletes, or rewrites prior chat turns to cover tracks or hide an injected instruction."
+    },
+    {
+      "id": "AML.T0093",
+      "name": "Prompt Infiltration via Public-Facing Application",
+      "tactic_ids": [
+        "AML.TA0004",
+        "AML.TA0006"
+      ],
+      "description": "Placing malicious prompts into a public-facing application so the victim's system ingests them later through RAG, agents, or user interaction.",
+      "detect_keywords": [
+        "public-facing",
+        "user review",
+        "forum post",
+        "issue comment",
+        "poisoned document upload",
+        "投毒文档",
+        "公开页面注入",
+        "网页留言"
+      ],
+      "detect_hints": "The tester writes prompt payloads into a public web surface such as a review, comment, profile, or support ticket, expecting the AI to read them later."
+    },
+    {
+      "id": "AML.T0094",
+      "name": "Delay Execution of LLM Instructions",
+      "tactic_ids": [
+        "AML.TA0007"
+      ],
+      "description": "Planting instructions that execute only on a future event or turn in order to slip past per-turn controls.",
+      "detect_keywords": [
+        "if the user asks",
+        "next time",
+        "on the next turn",
+        "wait until",
+        "deferred instruction",
+        "延迟执行",
+        "下次对话",
+        "条件指令"
+      ],
+      "detect_hints": "The injected instruction explicitly waits for a later trigger or conversation turn before taking effect."
+    },
+    {
+      "id": "AML.T0098",
+      "name": "AI Agent Tool Credential Harvesting",
+      "tactic_ids": [
+        "AML.TA0013"
+      ],
+      "description": "Using agent tools to harvest credentials from document stores, code repositories, and productivity systems.",
+      "detect_keywords": [
+        "credential harvesting",
+        "search for password",
+        "sharepoint",
+        "github token",
+        "notes app",
+        "凭据收集",
+        "搜集密码",
+        "代码仓库令牌"
+      ],
+      "detect_hints": "The tester uses the agent's connected tools to search mail, drives, repositories, or notes for secrets."
+    },
+    {
+      "id": "AML.T0101",
+      "name": "Data Destruction via AI Agent Tool Invocation",
+      "tactic_ids": [
+        "AML.TA0011"
+      ],
+      "description": "Invoking an agent's mutative tools in order to delete or destroy data and files.",
+      "detect_keywords": [
+        "delete files",
+        "rm -rf",
+        "destroy data",
+        "wipe",
+        "drop table",
+        "删除文件",
+        "数据销毁",
+        "清空数据"
+      ],
+      "detect_hints": "The tester drives the agent into destructive file, database, or record operations."
+    },
+    {
+      "id": "AML.T0105",
+      "name": "Escape to Host",
+      "tactic_ids": [
+        "AML.TA0012"
+      ],
+      "description": "Breaking out of a container or sandbox around an AI system in order to reach the underlying host.",
+      "detect_keywords": [
+        "escape to host",
+        "container escape",
+        "sandbox escape",
+        "docker socket",
+        "mount the host",
+        "容器逃逸",
+        "沙箱逃逸",
+        "逃逸到宿主机"
+      ],
+      "detect_hints": "The tester tries to break out of the sandbox or container that hosts the model or agent execution environment."
+    },
+    {
+      "id": "AML.T0110",
+      "name": "AI Agent Tool Poisoning",
+      "tactic_ids": [
+        "AML.TA0006"
+      ],
+      "description": "Poisoning an agent tool's definition, implementation, or runtime responses so the agent behaves differently from what the tool represents.",
+      "detect_keywords": [
+        "tool poisoning",
+        "malicious mcp",
+        "tool description injection",
+        "poisoned tool",
+        "mcp server tampering",
+        "工具投毒",
+        "工具描述注入",
+        "恶意mcp"
+      ],
+      "detect_hints": "The transcript describes a modified tool description, package, or MCP server that misleads the agent while appearing benign."
+    },
+    {
+      "id": "AML.T0129",
+      "name": "Triggers in Multimodal Inputs",
+      "tactic_ids": [
+        "AML.TA0007"
+      ],
+      "description": "Embedding instructions or triggers in a non-text modality so that controls that only inspect text miss them.",
+      "detect_keywords": [
+        "multimodal",
+        "image prompt injection",
+        "audio injection",
+        "steganograph",
+        "多模态注入",
+        "图片注入",
+        "语音注入",
+        "隐写"
+      ],
+      "detect_hints": "The payload rides inside an image, audio clip, or document rendering while the text channel looks clean."
+    },
+    {
+      "id": "AML.T0130",
+      "name": "AI Agent Response Biasing",
+      "tactic_ids": [
+        "AML.TA0011"
+      ],
+      "description": "Injecting instructions that bias an assistant toward adversary-chosen sources or recommendations in its answers.",
+      "detect_keywords": [
+        "trusted source",
+        "cite this",
+        "promote",
+        "prefer this site",
+        "bias the response",
+        "优先推荐",
+        "信任来源",
+        "偏置输出"
+      ],
+      "detect_hints": "The payload instructs the assistant to favor, promote, or always cite a chosen source in its responses."
+    },
+    {
+      "id": "AML.T0131",
+      "name": "Crafted AI Assistant Links",
+      "tactic_ids": [
+        "AML.TA0004"
+      ],
+      "description": "Crafting URLs that pre-populate or auto-submit an attacker-chosen prompt when an AI assistant link is opened.",
+      "detect_keywords": [
+        "?prompt=",
+        "assistant link",
+        "deeplink",
+        "url parameter",
+        "助手链接",
+        "预填提示词",
+        "深链接"
+      ],
+      "detect_hints": "The transcript contains assistant URLs carrying a prompt or query parameter that feeds the tester's payload straight into the chat."
+    },
+    {
+      "id": "AML.T0132",
+      "name": "Misconfigured or Publicly Exposed AI Services",
+      "tactic_ids": [
+        "AML.TA0004"
+      ],
+      "description": "Exploiting AI services with missing authentication or overly permissive access controls to reach agents and LLM runtimes.",
+      "detect_keywords": [
+        "no auth",
+        "unauthenticated",
+        "default credentials",
+        "publicly accessible",
+        "未授权",
+        "默认口令",
+        "暴露的服务",
+        "无鉴权"
+      ],
+      "detect_hints": "The tester reaches an LLM or agent endpoint without credentials, or notes absent or default authentication as the way in."
+    }
+  ]
+}
