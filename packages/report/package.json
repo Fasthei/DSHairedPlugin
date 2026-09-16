@@ -33,6 +33,7 @@
     "src",
     "tools",
     "cordis.patch.yml",
+    "LICENSE",
     "README.md"
   ],
   "dsh": {
