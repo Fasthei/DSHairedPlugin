@@ -1,0 +1,63 @@
+{
+  "name": "dsh-redteam-attack-matrix",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH 红队攻击矩阵插件：把侦察到的资产与服务映射到攻击矩阵，标出已覆盖与缺口",
+  "license": "MIT",
+  "author": "fasthei",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fasthei/DSHairedPlugin.git",
+    "directory": "packages/attack-matrix"
+  },
+  "keywords": [
+    "dsh",
+    "cordis",
+    "plugin",
+    "redteam",
+    "attack-matrix",
+    "mitre"
+  ],
+  "type": "module",
+  "main": "lib/host.js",
+  "exports": {
+    ".": {
+      "default": "./lib/host.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "tools",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    },
+    "dynamic": {
+      "hostHalf": "src/host.js",
+      "clientHalf": "src/client.js"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "*"
+  },
+  "scripts": {
+    "build:lib": "node tools/build-lib.mjs",
+    "check:lib": "node tools/build-lib.mjs --check",
+    "prepack": "node tools/build-lib.mjs --check",
+    "publish:gh": "node tools/prepare-gh-packages.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

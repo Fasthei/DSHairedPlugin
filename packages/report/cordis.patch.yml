@@ -1,0 +1,10 @@
+# dsh-redteam-report 的 bundle patch。
+#
+# `dsh plugin --profile <name> add dsh-redteam-report` 装完，reconcilePlugins 发现本包声明了
+# dsh.bundle.patch，就把包名并入 dsh.profile.bundles —— 插行由此生效，无需手工编辑配置。
+#
+# 语义提醒：patch 条目是 PatchOptions。带 id 的是「改某行配置」，
+# 只有 insert 且不带 id 才是往根列表追加新行（下面就是）。
+- insert:
+    - id: redteam-report
+      name: 'dsh-redteam-report'

@@ -6,7 +6,7 @@
 // 包装刻意保持极薄（只做作用域与导出），全部改造集中在主体自己的 applyClient 里，
 // 见 lib/parts/client.shim.js。
 window.__ModuleLoader__.load({
-  id: 'dsh-redteam-asset-graph',
+  id: '__PKG_NAME__',
   factory: (require) => {
     let React = require('react');
     var module = { exports: {} };

@@ -1,8 +1,8 @@
 
   // 插件自己的 JSON-RPC 端点。
   // 客户端 bundle 用 fetch 调它（静态模块可用 fetch；动态半边才被屏蔽）。
-  // 全部挂在 /dsh-redteam-asset-graph 命名空间下，避免与其它插件的路由相撞。
-  const RPC_PATH = '/dsh-redteam-asset-graph/rpc'
+  // 全部挂在 __ROUTE_BASE__ 命名空间下，避免与其它插件的路由相撞。
+  const RPC_PATH = '__ROUTE_BASE__/rpc'
 
   // 把 20 个动态 RPC 句柄经宿主 HTTP 路由暴露给客户端半边。
   // 客户端是普通模块，可以直接 fetch（动态半边才有 fetch 屏蔽）。
@@ -31,7 +31,7 @@
   }), 'rtasset: host rpc route')
 }
 
-export const name = 'redteam-asset-graph'
+export const name = '__PLUGIN_NAME__'
 // 三个工具注册进宿主 tools 注册表；这里声明本半边硬依赖的服务。
 export const inject = ['fs', 'shell', 'timer', 'webServer']
 export { applyHost as apply }

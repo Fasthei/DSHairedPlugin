@@ -1,0 +1,63 @@
+{
+  "name": "dsh-redteam-memory",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH 红队记忆插件：跨会话保留目标上下文与既有结论，避免重复侦察",
+  "license": "MIT",
+  "author": "fasthei",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fasthei/DSHairedPlugin.git",
+    "directory": "packages/memory"
+  },
+  "keywords": [
+    "dsh",
+    "cordis",
+    "plugin",
+    "redteam",
+    "memory",
+    "context"
+  ],
+  "type": "module",
+  "main": "lib/host.js",
+  "exports": {
+    ".": {
+      "default": "./lib/host.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "tools",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    },
+    "dynamic": {
+      "hostHalf": "src/host.js",
+      "clientHalf": "src/client.js"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "*"
+  },
+  "scripts": {
+    "build:lib": "node tools/build-lib.mjs",
+    "check:lib": "node tools/build-lib.mjs --check",
+    "prepack": "node tools/build-lib.mjs --check",
+    "publish:gh": "node tools/prepare-gh-packages.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

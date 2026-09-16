@@ -283,7 +283,7 @@ function Glyph(props) {
 function applyClient(ctx) {
   // ── 静态形态垫片（动态半边的闭包符号在静态包里不存在）──
   //
-  // 1) host.call：转到宿主 HTTP 路由（见 lib/host.js 的 /rtasset/rpc）。
+  // 1) host.call：转到宿主 HTTP 路由（见 lib/host.js 的 /dsh-redteam-asset-graph/rpc）。
   //    选 HTTP 而非 ctx.remote：Remote 需 typert 代码生成（zod schema + 生成绑定），
   //    而本插件有 20 个无类型 JSON 句柄，为此引入整套生成链不划算；
   //    且 fetch 只被【动态】半边屏蔽，静态模块可直接用。
@@ -300,7 +300,7 @@ function applyClient(ctx) {
         return res.json().catch(function () { return null }).then(function (payload) {
           if (!res.ok || !payload || payload.ok !== true) {
             const detail = (payload && payload.error) || ('HTTP ' + res.status)
-            throw new Error('rtasset rpc ' + method + ' 失败：' + detail)
+            throw new Error('redteam-asset-graph rpc ' + method + ' 失败：' + detail)
           }
           return payload.result
         })
@@ -308,7 +308,7 @@ function applyClient(ctx) {
     },
   }
 
-  const STYLE_ID = 'rtasset-styles'
+  const STYLE_ID = 'redteam-asset-graph-styles'
   const styles = {
     insert(css) {
       if (typeof document === 'undefined') return function () {}
@@ -316,7 +316,7 @@ function applyClient(ctx) {
       if (!el) { el = document.createElement('style'); el.id = STYLE_ID; document.head.appendChild(el) }
       el.textContent += String(css) + '\n'
       const dispose = function () { if (el && el.parentNode) el.parentNode.removeChild(el) }
-      try { ctx.effect(function () { return dispose }, 'rtasset: styles') } catch (e) { return dispose }
+      try { ctx.effect(function () { return dispose }, 'redteam-asset-graph: styles') } catch (e) { return dispose }
       return dispose
     },
   }

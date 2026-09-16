@@ -17,8 +17,15 @@ const root = path.join(import.meta.dirname, '..')
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8')
 const check = process.argv.includes('--check')
 
-const HOST_WRAPPER = "\nreturn {\n  name: 'redteam-asset-graph',\n  apply: applyHost\n}\n"
-const CLIENT_WRAPPER = "\nreturn {\n  name: 'redteam-asset-graph',\n  inject: ['slots', 'timer'],\n  apply: applyClient\n}\n"
+// 插件名从包自身推导：pkg 名去掉 'dsh-' 前缀即界面/工具标识，
+// 这样生成器可被任意包复用，不必逐包改字符串。
+const PKG = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+const PKG_NAME = PKG.name
+const PLUGIN_NAME = PKG_NAME.replace(/^dsh-/, '')
+// RPC 路由挂在包命名空间下，避免与其它插件的路由相撞。
+const ROUTE_BASE = '/' + PKG_NAME
+
+const CLIENT_WRAPPER = "\nreturn {\n  name: '" + PLUGIN_NAME + "',\n  inject: ['slots', 'timer'],\n  apply: applyClient\n}\n"
 
 function strip(source, wrapper, file) {
   if (!source.endsWith(wrapper)) {
@@ -28,10 +35,20 @@ function strip(source, wrapper, file) {
   return source.slice(0, -wrapper.length)
 }
 
+// 模板里的占位符按包替换（模板因此可跨包复用）
+function fill(text) {
+  return text
+    .split('__PKG_NAME__').join(PKG_NAME)
+    .split('__PLUGIN_NAME__').join(PLUGIN_NAME)
+    .split('__ROUTE_BASE__').join(ROUTE_BASE)
+}
+
 // ── Host 半边 ────────────────────────────────────────────────────────────────
 const hostHead = read('lib/parts/host.head.js')
 const hostTail = read('lib/parts/host.tail.js')
-const hostOut = hostHead + strip(read('src/host.js'), HOST_WRAPPER, 'src/host.js') + hostTail
+// 本插件的 src/host.js 只写 applyHost 的函数体（函数头与收尾由 lib/parts 提供），
+// 因此这里不做「剥离动态包装」——那个包装是 asset-graph 那种内联插件对象才有的。
+let hostOut = fill(hostHead + read('src/host.js') + hostTail)
 
 // ── Client 半边 ──────────────────────────────────────────────────────────────
 // 垫片注入到主体自己的 applyClient 开头，包装保持极薄（只做作用域与导出）。
@@ -45,7 +62,9 @@ if (clientBody.split(ANCHOR).length !== 2) {
   process.exit(1)
 }
 clientBody = clientBody.replace(ANCHOR, clientShim + '  const slots = ctx.slots\n')
-const clientOut = clientHead + clientBody + clientTail
+let clientOut = fill(clientHead + clientBody + clientTail)
+
+
 
 const targets = [
   ['lib/host.js', hostOut],
