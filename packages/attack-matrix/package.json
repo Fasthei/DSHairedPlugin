@@ -1,6 +1,6 @@
 {
   "name": "dsh-redteam-attack-matrix",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DSH 红队攻击矩阵插件：扫工作区对话映射到 MITRE ATLAS / ATT&CK、OWASP LLM Top 10、NVIDIA AI Kill Chain 四套框架，标出已覆盖与缺口，并给出测试时间线",
   "license": "MIT",
   "author": "fasthei",

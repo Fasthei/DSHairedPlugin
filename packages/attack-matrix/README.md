@@ -50,6 +50,19 @@ dsh plugin --profile web add dsh-redteam-attack-matrix
 
 包自带 `dsh.bundle.patch`，装完自动挂载，不需要手工编辑配置。
 
+## 版本
+
+**`1.0.1`**（仓库版本）。`src/` 是权威源码，`lib/` 由它生成，因此不存在「仓库版本与运行版本不一致」。
+
+本版只修一处缺陷：**客户端 RPC 路径**。`1.0.0` 的 `lib/client.js` 把它写死成了
+`/dsh-redteam-asset-graph/rpc` —— 本插件于是去打资产图谱的路由：**面板请求全 404**，
+两者同时安装时还会读到对方的数据。本版改成由生成器按包名替换的 `__ROUTE_BASE__`
+占位符，并把**实际请求的 url** 钉进冒烟测试：原来只记 `method`，路径写错成别的插件
+也测不出来 —— 这次事故正是从那个盲区漏出去的。
+
+`1.0.0` 的内容（四套框架矩阵、扫描与确认链路、时间线）见 git log 与 tag
+`attack-matrix-v1.0.0`。
+
 ## 已知限制
 
 - **只能扫进程内活着的会话**。DSH 的 `sessions` 是内存态 Service

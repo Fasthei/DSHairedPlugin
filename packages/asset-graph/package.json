@@ -1,6 +1,6 @@
 {
   "name": "dsh-redteam-asset-graph",
-  "version": "7.9.6",
+  "version": "7.9.7",
   "description": "DSH 红队资产图谱插件包：把目标资产自动收集、关联、可视化，并让模型参与研判（面板 + 三个模型工具 + Jina 检索两阶段关联分析）",
   "license": "MIT",
   "author": "fasthei",
