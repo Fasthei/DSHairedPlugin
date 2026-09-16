@@ -21,18 +21,24 @@ const check = process.argv.includes('--check')
 // 这样生成器可被任意包复用，不必逐包改字符串。
 const PKG = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const PKG_NAME = PKG.name
-const PLUGIN_NAME = PKG_NAME.replace(/^dsh-/, '')
+const PLUGIN_NAME = path.basename(PKG_NAME).replace(/^dsh-/, '')
 // RPC 路由挂在包命名空间下，避免与其它插件的路由相撞。
 const ROUTE_BASE = '/' + PKG_NAME
 
-const CLIENT_WRAPPER = "\nreturn {\n  name: '" + PLUGIN_NAME + "',\n  inject: ['slots', 'timer'],\n  apply: applyClient\n}\n"
 
-function strip(source, wrapper, file) {
-  if (!source.endsWith(wrapper)) {
-    console.error(`build-lib: ${file} 结尾与预期不符，无法剥离动态包装`)
+// src 结尾的动态包装自带它声明的插件名。按实际内容解析，这样同一份 src 在
+// 「未作用域名包」和「@owner/… 作用域名副本」两种产物里都能正确生成 ——
+// 名字只影响产物里那个 id/标识，不影响主体逻辑。
+// （硬编码 PKG 名去比对的写法会让 GitHub Packages 的改名副本直接构建失败。）
+function stripDynamicWrapper(source, kind, file) {
+  const fn = kind === 'host' ? 'applyHost' : 'applyClient'
+  const re = new RegExp("\\nreturn \\{\\n  name: '([^']+)',\\n(?:  [^\\n]+,\\n)*  apply: " + fn + "\\n\\}\\n$")
+  const m = re.exec(source)
+  if (!m) {
+    console.error(`build-lib: ${file} 结尾不是预期的动态包装（return { name, apply: ${fn} }），无法剥离`)
     process.exit(1)
   }
-  return source.slice(0, -wrapper.length)
+  return { source: source.slice(0, m.index), declared: m[1] }
 }
 
 // 模板里的占位符按包替换（模板因此可跨包复用）
@@ -80,7 +86,8 @@ const clientHead = read('lib/parts/client.head.js')
 const clientShim = read('lib/parts/client.shim.js')
 const clientTail = read('lib/parts/client.tail.js')
 const ANCHOR = 'function applyClient(ctx) {\n  const slots = ctx.slots\n'
-let clientBody = strip(read('src/client.js'), CLIENT_WRAPPER, 'src/client.js')
+const clientStripped = stripDynamicWrapper(read('src/client.js'), 'client', 'src/client.js')
+let clientBody = clientStripped.source
 if (clientBody.split(ANCHOR).length !== 2) {
   console.error('build-lib: src/client.js 中未找到唯一的 applyClient 入口锚点')
   process.exit(1)
@@ -141,6 +148,10 @@ try {
 if (structureBad > 0) {
   console.error('build-lib: 产物结构不合规，已中止')
   process.exit(1)
+}
+
+if (clientStripped.declared !== PLUGIN_NAME) {
+  console.log(`build-lib: 注意 src/client.js 声明的插件名（${clientStripped.declared}）与 package.json 推导出的 ${PLUGIN_NAME} 不同；产物 id 以 package.json 为准。`)
 }
 
 const targets = [
