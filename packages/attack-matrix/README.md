@@ -43,6 +43,10 @@ ATLAS 和 ATT&CK 是两套东西：ATLAS 打 AI 系统本身，ATT&CK 打企业 
 
 ## 安装
 
+> ⚠️ **发布 `1.0.1` 之前，先别从 npm 装**：npm 上当前的 `latest` 是 `1.0.0`，
+> 它的客户端 RPC 路径写死成了资产图谱的路由，**面板全 404**（详见「版本」一节）。
+> `1.0.1` 尚未发布，下面这条命令现在装到的就是那个坏版本。
+
 ```bash
 dsh plugin --profile web add dsh-redteam-attack-matrix
 # 重启 dsh web

@@ -12,6 +12,11 @@
 
 ## 安装（推荐：插件包）
 
+> ⚠️ **发布 `7.9.7` 之前，先别从 npm 装**：npm 上当前的 `latest` 是 `7.9.6`，它的
+> `inject` 漏了 `'tools'`，装进 profile 后**整个 dsh 起不来**（详见「版本」一节）。
+> `7.9.7` 尚未发布，所以下面第一条命令现在装到的就是那个坏版本 —— 请改用
+> 「其他安装方式」里的**从仓库直接装**或**本地 tarball**。
+
 ```bash
 dsh plugin --profile web add dsh-redteam-asset-graph
 # 然后重启 dsh web —— web profile 的 hmr 是 disabled，组合改动不会热生效
@@ -42,7 +47,7 @@ dsh --profile web --dump-config | tail -4
 ### 其他安装方式
 
 ```bash
-# 指定版本
+# 指定版本（7.9.7 尚未发布到 npm，发布前这条命令会 404）
 dsh plugin --profile web add dsh-redteam-asset-graph@7.9.7
 
 # 从仓库直接装（开发用；仍是同一套 bundle 机制）
