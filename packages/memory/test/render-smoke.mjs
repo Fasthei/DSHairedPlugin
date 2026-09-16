@@ -220,6 +220,24 @@ ok(!!settingsReg && settingsReg.id === 'redteam-memory', '设置页的 id 是包
 ok(!!settingsReg && settingsReg.label === '红队设置', '设置页的标签是「红队设置」：' + (settingsReg && settingsReg.label))
 ok(!!settingsReg && typeof settingsReg.order === 'number', '设置页带排序位：' + (settingsReg && settingsReg.order))
 
+console.log('\n[0] 样式只引用注册过的主题 token')
+{
+  // 回归线：曾经把 bg-layer-1 / bg-layer-2 记成 bg-l1 / bg-l2 —— 名字不存在，
+  // var() 直接回退到硬编码 rgba，深浅色主题下观感不一致却没人报错。
+  const TOKENS = [
+    '--dsw-alias-bg-base', '--dsw-alias-bg-layer-1', '--dsw-alias-bg-layer-2', '--dsw-alias-bg-overlay',
+    '--dsw-alias-border-l1', '--dsw-alias-border-l2', '--dsw-alias-brand-primary',
+    '--dsw-alias-label-primary', '--dsw-alias-label-secondary',
+    '--dsw-alias-state-error-primary', '--dsw-alias-state-success-primary', '--dsw-alias-state-warn-primary',
+    '--dsw-specific-sidebar-fill',
+  ]
+  const src = fs.readFileSync(libClient, 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n')
+  const used = Array.from(new Set(src.match(/--dsw-[a-z0-9-]+/g) || []))
+  const unknown = used.filter((t) => TOKENS.indexOf(t) < 0)
+  ok(used.length > 5, '样式中确实用了主题 token（' + used.length + ' 个）')
+  ok(unknown.length === 0, '没有不存在的 token' + (unknown.length ? '：' + JSON.stringify(unknown) : ''))
+}
+
 console.log('\n[2] 记忆面板：顶栏 / 标签页')
 const render = makeRenderer(Panel)
 let tree = render.run()

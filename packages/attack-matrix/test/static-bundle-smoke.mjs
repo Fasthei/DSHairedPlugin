@@ -485,5 +485,25 @@ console.log('\n[11] 「已确认」必须是红色：它是战果，不是好消
   ok(stillGreen.length === 0, '已确认相关样式不再用绿色' + (stillGreen.length ? '（' + stillGreen.join(',') + '）' : ''))
 }
 
+
+console.log('\n[12] 样式只引用注册过的主题 token')
+{
+  // 这条是回归线：曾经把 bg-layer-1 / bg-layer-2 记成 bg-l1 / bg-l2 —— 名字不存在，
+  // var() 直接回退到硬编码 rgba，深浅色主题下观感不一致（看着「脏」）却没人报错。
+  const TOKENS = [
+    '--dsw-alias-bg-base', '--dsw-alias-bg-layer-1', '--dsw-alias-bg-layer-2', '--dsw-alias-bg-overlay',
+    '--dsw-alias-border-l1', '--dsw-alias-border-l2', '--dsw-alias-brand-primary',
+    '--dsw-alias-label-primary', '--dsw-alias-label-secondary',
+    '--dsw-alias-state-error-primary', '--dsw-alias-state-success-primary', '--dsw-alias-state-warn-primary',
+    '--dsw-specific-sidebar-fill',
+  ]
+  // 去掉整行注释再扫，免得把「解释这个坑」的注释当成用法
+  const src = fs.readFileSync(libClient, 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n')
+  const used = Array.from(new Set(src.match(/--dsw-[a-z0-9-]+/g) || []))
+  const unknown = used.filter((t) => TOKENS.indexOf(t) < 0)
+  ok(true, '用到的主题 token 全在注册表里（' + used.length + ' 个）')
+  ok(unknown.length === 0, '没有不存在的 token' + (unknown.length ? '：' + JSON.stringify(unknown) : ''))
+}
+
 console.log('\n' + (fails.length === 0 ? '✓ 全部通过（' + pass + ' 项）' : '✗ 失败 ' + fails.length + ' 项：\n  - ' + fails.join('\n  - ')))
 process.exit(fails.length === 0 ? 0 : 1)

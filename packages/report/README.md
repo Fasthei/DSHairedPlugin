@@ -115,7 +115,7 @@
 ```bash
 npm run build:lib     # 生成 lib/（会把 src/docx.js 内联进 lib/host.js）
 npm run check:lib     # 校验与 src/ 是否漂移（prepack 会跑）
-npm test              # 导出模块 122 项 + 主机侧 102 项 + 客户端渲染 73 项
+npm test              # 导出模块 122 项 + 主机侧 102 项 + 客户端渲染 75 项
 ```
 
 主机侧测试不打网络、不落真盘：`llm` 是一个假的流式实现，`fs` / `shell` 是内存实现，

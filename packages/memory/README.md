@@ -159,7 +159,7 @@ remember this…」，面板可改）时，那条用户消息会被自动收进�
 ```bash
 npm run build:lib     # 生成 lib/
 npm run check:lib     # 校验与 src/ 是否漂移（prepack 会跑）
-npm test              # 主机侧 154 项 + 客户端渲染 87 项
+npm test              # 主机侧 154 项 + 客户端渲染 89 项
 ```
 
 主机侧测试不需要真 Milvus / 真向量服务：HTTP 全走 `shell`+`curl`，测试塞了一个假 shell
