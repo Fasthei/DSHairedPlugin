@@ -97,9 +97,9 @@ for p in asset-graph attack-matrix memory report; do
   ln -sfn "$DSH_NM/dsh-tools" "packages/$p/node_modules/@deepseek-ai/dsh-tools"
 done
 npm test
-# 现在能看到真实项数（共 721 项）：
+# 现在能看到真实项数（共 735 项）：
 #   资产图谱 15 · 攻击矩阵 host 97 / client 85 · 记忆 host 154 / client 87
-#   报告 docx 122 / host 102 / client 59
+#   报告 docx 122 / host 102 / client 73
 ```
 
 `node_modules/` 在 `.gitignore` 里，软链不会进仓库。

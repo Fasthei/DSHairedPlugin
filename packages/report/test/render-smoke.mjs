@@ -5,9 +5,11 @@
 // 一个真实缺陷：垫片里的 RPC 路径被写死成了 /dsh-redteam-asset-graph/rpc。
 // 所以这里**把实际请求的 url 钉进断言** —— 只记 method 的话，路径写错成别的插件也测不出来。
 //
-// 还钉了两件容易悄悄坏掉的事：
+// 还钉了三件容易悄悄坏掉的事：
 //   · 预览用的是宿主渲染的 HTML（iframe.srcdoc 里必须是完整文档），不是前端自己拼的；
-//   · 导出按钮真的按格式调 export（docx 尤其不能退化成 md）。
+//   · 导出按钮真的按格式调 export（docx 尤其不能退化成 md）；
+//   · 主操作与破坏性操作分得开 —— 一屏九個按钮那种事不该再发生（生成/保存是主，
+//     导出归成一组，删除弱化在右侧）。
 //
 // 用法: node test/render-smoke.mjs
 
@@ -87,6 +89,11 @@ function findAll(node, pred, out) {
   if (pred(node)) acc.push(node)
   findAll(node.props && node.props.children, pred, acc)
   return acc
+}
+// 按可见文本找按钮（排掉标签页那种同名按钮）
+function button(tree, label, notClass) {
+  return findAll(tree, (n) => n.type === 'button' && textOf(n).trim() === label &&
+    (!notClass || String(n.props.className || '').indexOf(notClass) < 0))[0]
 }
 async function settle(render) {
   for (let i = 0; i < 12; i++) {
@@ -217,7 +224,7 @@ mod.apply(ctx)
 ok(!!Panel, '主面板已注册到 main 插槽')
 ok(!!Glyph, '侧栏按钮已注册到 sidebar.panellist')
 
-console.log('\n[2] 首次渲染：顶栏 / 标签页')
+console.log('\n[2] 顶栏与标签页')
 const render = makeRenderer(Panel)
 let tree = render.run()
 await settle(render)
@@ -225,9 +232,8 @@ tree = render.run()
 let text = textOf(tree)
 ok(text.indexOf('红队报告') >= 0, '标题出现')
 ok(text.indexOf('报告 1 份') >= 0, '顶栏显示报告份数')
-ok(text.indexOf('矩阵 2/1') >= 0, '顶栏显示证据规模（已确认/疑似）：' + text.slice(0, 120))
-ok(text.indexOf('落盘 ready') >= 0, '顶栏显示落盘状态')
-ok(text.indexOf('报告') >= 0 && text.indexOf('设置') >= 0 && text.indexOf('日志') >= 0, '三个标签页都在')
+ok(text.indexOf('证据：会话 2 · 矩阵 2/1 · 记忆 1') >= 0, '顶栏显示证据规模（会话/矩阵/记忆）')
+ok(text.indexOf('报告') >= 0 && text.indexOf('证据') >= 0 && text.indexOf('设置') >= 0 && text.indexOf('日志') >= 0, '四个标签页都在')
 
 console.log('\n[3] RPC 打的是本插件自己的路由（钉住 url，不是只记 method）')
 ok(urls.length > 0 && urls.every((u) => u === '/dsh-redteam-report/rpc'),
@@ -235,14 +241,15 @@ ok(urls.length > 0 && urls.every((u) => u === '/dsh-redteam-report/rpc'),
 ok(urls.indexOf('/dsh-redteam-asset-graph/rpc') < 0, '没有打到资产图谱的路由（骨架复制带来的缺陷）')
 
 console.log('\n[4] 报告页：列表 / 编辑器 / 预览')
-ok(calls.indexOf('snapshot') >= 0, '加载时调了 snapshot')
-ok(text.indexOf('红队测试报告：推理服务未授权') >= 0, '报告列表里出现标题')
-ok(text.indexOf('生成报告') >= 0 || text.indexOf('重新生成') >= 0, '有生成按钮')
-ok(text.indexOf('导出 Word') >= 0 && text.indexOf('导出 MD') >= 0 && text.indexOf('导出 HTML') >= 0, '三个导出按钮都在')
-ok(text.indexOf('导入记忆') >= 0, '有「导入记忆」按钮')
 {
+  ok(calls.indexOf('snapshot') >= 0, '加载时调了 snapshot')
+  const chip = findAll(tree, (n) => typeof n.props.className === 'string' && n.props.className.indexOf('rtr-chip') >= 0 && textOf(n).indexOf('红队测试报告') >= 0)[0]
+  ok(!!chip, '报告列表里有当前这份（带标题）')
+  ok(!!chip && textOf(chip).indexOf('字 ·') >= 0, '列表项带上字数与时间')
+  ok(!!button(tree, '重新生成'), '有「重新生成」（已有正文时）')
   const ta = findAll(tree, (n) => n.type === 'textarea')[0]
   ok(!!ta && String(ta.props.value).indexOf('ATLAS / AML.T0043') >= 0, '编辑框里是报告正文')
+
   // 预览走宿主：定时器（ctx.get('timer')）里那一步要手动推一下，再 settle
   for (const fn of timerQueue) fn()
   timerQueue = []
@@ -257,15 +264,31 @@ ok(text.indexOf('导入记忆') >= 0, '有「导入记忆」按钮')
   ok(!!argsOf.preview && argsOf.preview.title === '红队测试报告：推理服务未授权', 'preview 收到标题')
 }
 
-console.log('\n[5] 导出：三种格式各自打到 export')
+console.log('\n[5] 操作行：主次分开，导出成组')
+{
+  const tools = findAll(tree, (n) => typeof n.props.className === 'string' && n.props.className === 'rtr-tools')[0]
+  ok(!!tools, '有一行操作区')
+  const labels = findAll(tools, (n) => n.type === 'button').map((n) => textOf(n).trim())
+  ok(labels.indexOf('重新生成') >= 0 && labels.indexOf('保存') >= 0, '主操作是「重新生成」「保存」：' + JSON.stringify(labels))
+  ok(labels.indexOf('Markdown') >= 0 && labels.indexOf('HTML') >= 0 && labels.indexOf('Word') >= 0, '导出三种格式成组在：' + JSON.stringify(labels))
+  ok(labels.indexOf('导入记忆') >= 0 && labels.indexOf('删除') >= 0, '导入与删除也在（删除是弱化的危险样式）')
+  ok(labels.length <= 7, '整个操作行不超过 7 个按钮（原来 9 个平铺）：' + labels.length)
+  ok(textOf(tools).indexOf('导出') >= 0, '导出组有「导出」标签')
+  const del = button(tree, '删除')
+  ok(!!del && String(del.props.className).indexOf('rtr-btn-danger') >= 0, '删除用危险样式（红色文字，不是实心红块）')
+  const gen = button(tree, '重新生成')
+  ok(!!gen && String(gen.props.className).indexOf('rtr-btn-primary') >= 0, '生成是主按钮')
+}
+
+console.log('\n[6] 导出：三种格式各自打到 export')
 {
   for (const fmt of ['md', 'html', 'docx']) {
-    const expected = fmt === 'docx' ? '导出 Word' : (fmt === 'md' ? '导出 MD' : '导出 HTML')
-    const btn = findAll(tree, (n) => n.type === 'button' && textOf(n) === expected)[0]
-    ok(!!btn, '找到「' + expected + '」按钮')
-    if (!btn) continue
+    const expected = fmt === 'docx' ? 'Word' : (fmt === 'md' ? 'Markdown' : 'HTML')
+    const b = button(tree, expected)
+    ok(!!b, '找到「' + expected + '」按钮')
+    if (!b) continue
     delete argsOf.export
-    btn.props.onClick()
+    b.props.onClick()
     await settle(render)
     tree = render.run()
     text = textOf(tree)
@@ -274,13 +297,13 @@ console.log('\n[5] 导出：三种格式各自打到 export')
   }
 }
 
-console.log('\n[6] 导入记忆')
+console.log('\n[7] 导入记忆')
 {
-  const btn = findAll(tree, (n) => n.type === 'button' && textOf(n) === '导入记忆')[0]
-  ok(!!btn, '找到「导入记忆」按钮')
-  if (btn) {
+  const b = button(tree, '导入记忆')
+  ok(!!b, '找到「导入记忆」按钮')
+  if (b) {
     delete argsOf.importToMemory
-    btn.props.onClick()
+    b.props.onClick()
     await settle(render)
     tree = render.run()
     text = textOf(tree)
@@ -290,25 +313,55 @@ console.log('\n[6] 导入记忆')
   }
 }
 
-console.log('\n[7] 保存按钮只在有改动时可用')
+console.log('\n[8] 保存按钮只在有改动时可用')
 {
-  const btn = findAll(tree, (n) => n.type === 'button' && textOf(n).indexOf('保存') === 0)[0]
-  ok(!!btn, '找到保存按钮')
-  ok(!!btn && btn.props.disabled === true, '没改动时保存是禁用的')
+  const b = findAll(tree, (n) => n.type === 'button' && textOf(n).trim().indexOf('保存') === 0)[0]
+  ok(!!b, '找到保存按钮')
+  ok(!!b && b.props.disabled === true, '没改动时保存是禁用的')
   const ta = findAll(tree, (n) => n.type === 'textarea')[0]
   ta.props.onChange({ target: { value: '改了一行' } })
   tree = render.run()
-  const btn2 = findAll(tree, (n) => n.type === 'button' && textOf(n).indexOf('保存') >= 0 && textOf(n).indexOf('导出') < 0)[0]
-  ok(!!btn2 && btn2.props.disabled !== true, '改动后保存可用')
+  const b2 = findAll(tree, (n) => n.type === 'button' && textOf(n).trim().indexOf('保存') === 0)[0]
+  ok(!!b2 && b2.props.disabled !== true, '改动后保存可用')
   ok(textOf(tree).indexOf('未保存') >= 0, '顶栏提示未保存')
-  btn2.props.onClick()
+  b2.props.onClick()
   await settle(render)
+  tree = render.run()
   ok(argsOf.saveDraft && argsOf.saveDraft.markdown === '改了一行', '保存把编辑框内容发回去')
 }
 
-console.log('\n[8] 设置页：模型提示 / 试算证据')
+console.log('\n[9] 证据页：试算证据（独立成一个 tab）')
 {
-  const tabBtn = findAll(tree, (n) => n.type === 'button' && textOf(n).trim() === '设置')[0]
+  const tabBtn = button(tree, '证据', 'rtr-tab') || findAll(tree, (n) => n.type === 'button' && textOf(n).trim() === '证据' && String(n.props.className).indexOf('rtr-tab') >= 0)[0]
+  ok(!!tabBtn, '找到「证据」标签页')
+  if (tabBtn) {
+    tabBtn.props.onClick()
+    await settle(render)
+    tree = render.run()
+    text = textOf(tree)
+    ok(text.indexOf('还没试算') >= 0, '未试算时有说明卡')
+    const b = button(tree, '试算证据')
+    ok(!!b, '找到「试算证据」按钮')
+    if (b) {
+      b.props.onClick()
+      await settle(render)
+      tree = render.run()
+      text = textOf(tree)
+      ok(calls.indexOf('collect') >= 0, '点「试算证据」调了 collect')
+      ok(text.indexOf('会话 1') >= 0 && text.indexOf('已确认 2') >= 0 && text.indexOf('疑似 1') >= 0, '统计徽标渲染出来')
+      ok(text.indexOf('digest 5200 字') >= 0, 'digest 体量徽标')
+      ok(text.indexOf('矩阵来源 service') >= 0, '说明矩阵来源')
+      ok(text.indexOf('记忆检索词：未授权访问推理服务') >= 0, '渲染出记忆检索词')
+      ok(text.indexOf('推理服务测试') >= 0, '会话采集表里有会话标题')
+      const pre = findAll(tree, (n) => n.type === 'pre')[0]
+      ok(!!pre && textOf(pre).indexOf('证据材料（自动采集）') >= 0, 'digest 原文渲染出来')
+    }
+  }
+}
+
+console.log('\n[10] 设置页：模型 / 预算 / 路径 / 额外要求')
+{
+  const tabBtn = findAll(tree, (n) => n.type === 'button' && textOf(n).trim() === '设置' && String(n.props.className).indexOf('rtr-tab') >= 0)[0]
   ok(!!tabBtn, '找到「设置」标签页')
   if (tabBtn) {
     tabBtn.props.onClick()
@@ -316,32 +369,27 @@ console.log('\n[8] 设置页：模型提示 / 试算证据')
     tree = render.run()
     text = textOf(tree)
     ok(text.indexOf('撰写模型') >= 0, '有撰写模型一组')
-    ok(text.indexOf('deepseek/deepseek-chat') >= 0, '提示当前会用的模型（来自当前会话默认）：' + (text.match(/留空 = [^）]*/) || [''])[0])
-    ok(text.indexOf('证据预算') >= 0, '有证据预算一组')
+    ok(text.indexOf('deepseek/deepseek-chat') >= 0, '提示当前会用的模型（来自当前会话默认）')
+    ok(text.indexOf('证据预算') >= 0 && text.indexOf('digest 总上限') >= 0, '有证据预算一组')
+    ok(text.indexOf('路径') >= 0 && text.indexOf('报告库文件') >= 0, '有路径一组')
+    ok(text.indexOf('额外要求') >= 0, '有额外要求一组')
     ok(text.indexOf('用当前会话默认模型') >= 0, '有「用当前会话默认模型」按钮')
-    ok(text.indexOf('.redteam-attack-matrix.json') >= 0, '矩阵存储路径有默认提示')
-
-    const go = findAll(tree, (n) => n.type === 'button' && textOf(n) === '试算证据')[0]
-    ok(!!go, '找到「试算证据」按钮')
-    if (go) {
-      go.props.onClick()
+    const matrixInput = findAll(tree, (n) => n.type === 'input' && String(n.props.placeholder || '').indexOf('.redteam-attack-matrix.json') >= 0)[0]
+    ok(!!matrixInput, '矩阵存储的默认路径作为 placeholder 提示出来')
+    ok(text.indexOf('当前落盘：/home/kali/桌面/.redteam-report.json') >= 0, '显示解析后的落盘路径')
+    const saveBtn = button(tree, '保存设置')
+    ok(!!saveBtn, '有保存设置按钮')
+    if (saveBtn) {
+      saveBtn.props.onClick()
       await settle(render)
-      tree = render.run()
-      text = textOf(tree)
-      ok(calls.indexOf('collect') >= 0, '点「试算证据」调了 collect')
-      ok(text.indexOf('AI 这次会看到什么') >= 0, '渲染出试算标题')
-      ok(text.indexOf('会话 1') >= 0 && text.indexOf('矩阵 2 已确认 / 1 疑似') >= 0, '渲染出证据规模')
-      ok(text.indexOf('记忆检索词：未授权访问推理服务') >= 0, '渲染出记忆检索词')
-      ok(text.indexOf('推理服务测试') >= 0, '会话表里有会话标题')
-      const pre = findAll(tree, (n) => n.type === 'pre')[0]
-      ok(!!pre && textOf(pre).indexOf('证据材料（自动采集）') >= 0, 'digest 原文渲染出来了')
+      ok(calls.indexOf('saveSettings') >= 0, '点「保存设置」调了 saveSettings')
     }
   }
 }
 
-console.log('\n[9] 日志页')
+console.log('\n[11] 日志页')
 {
-  const tabBtn = findAll(tree, (n) => n.type === 'button' && textOf(n).trim() === '日志')[0]
+  const tabBtn = findAll(tree, (n) => n.type === 'button' && textOf(n).trim() === '日志' && String(n.props.className).indexOf('rtr-tab') >= 0)[0]
   ok(!!tabBtn, '找到「日志」标签页')
   if (tabBtn) {
     tabBtn.props.onClick()
