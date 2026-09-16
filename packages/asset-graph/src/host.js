@@ -284,7 +284,6 @@ function blankStore() {
   }
 }
 
-function applyHost(ctx) {
   const store = blankStore()
   let seq = 1
   let writeChain = Promise.resolve()
@@ -707,13 +706,64 @@ function applyHost(ctx) {
     return true
   }
 
+  // 无序资产对：一对资产只保留一条关系边，方向只是书写习惯，不参与去重。
+  function pairKey(a, b) { return String(a) < String(b) ? String(a) + '\u0000' + String(b) : String(b) + '\u0000' + String(a) }
+  // 同一对资产出现多条关系时的优先级。1 最弱，数字越大越权威。
+  // manual 永远压过自动推断，这样「和引擎结论打架的那个 pair」保留人工判断、去掉重复边。
+  function sourceRank(src) {
+    const s = String(src || 'auto')
+    if (s === 'manual') return 3
+    if (s === 'import') return 2
+    return 1
+  }
+
+  // 关系边的唯一入口。返回值恒为边对象，这样调用方仍可写 if (addEdgeRaw(...))。
+  //
+  // 去重键是「无序资产对」而不是 (from,to,relation)。原因：analyzePool 会为每个 URL→域名
+  // 无条件生成 belongs_to，而人工再加一条 hosts_on（或 resolves_to）时旧实现认为
+  // 「关系名不同就是两条边」，于是同一对资产上留下两条语义重复的边。实践中观察到 5 对。
+  //
+  // 冲突时保留更权威的一条：已有 manual 就丢掉后来的 auto/import；已有 auto/import
+  // 而新来的是 manual，则替换掉旧的（人工判断纠正引擎结论，而不是被引擎钉死）。
+  // 关系名不同时用 appendRelationNote 把被丢弃的那条留痕，避免信息彻底消失。
+
+  // 把被丢弃的关系名追加进 evidence，幂等（同一条边反复被压不会重复写）。
+  function appendRelationNote(edge, relation) {
+    const note = '（另有关系 ' + relation + '）'
+    const ev = String(edge.evidence || '')
+    if (ev.indexOf(note) >= 0) return
+    edge.evidence = (ev + note).slice(0, 300)
+  }
+
   function addEdgeRaw(from, to, relation, weight, source, evidence) {
     if (!from || !to || from === to) return null
     if (!findAsset(from) || !findAsset(to)) return null
-    for (const e of store.edges) {
-      if (((e.from === from && e.to === to) || (e.from === to && e.to === from)) && e.relation === relation) return e
+    const rel = String(relation || 'related')
+    const src = source || 'manual'
+    const ev = evidence ? String(evidence).slice(0, 300) : ''
+    const key = pairKey(from, to)
+    for (let i = 0; i < store.edges.length; i++) {
+      const e = store.edges[i]
+      if (pairKey(e.from, e.to) !== key) continue
+      const er = sourceRank(e.source), nr = sourceRank(src)
+      // 同权威等级：保留先到的那条。但要把这次的关系名留痕 —— 例如人工主机关系压掉
+      // analyzePool 自动生成的 belongs_to 时，读图的人仍应看到引擎原本的判断。
+      if (er === nr) {
+        if (e.relation !== rel) appendRelationNote(e, rel)
+        return e
+      }
+      if (er > nr) {
+        // 已有边更权威（例如人工压自动）：同样只留痕，不动数据。
+        if (e.relation !== rel) appendRelationNote(e, rel)
+        return e
+      }
+      // 新边更权威（人工覆盖自动）：替换旧边，保留它的 id 以维持已渲染的引用。
+      const note = e.relation === rel ? '' : '（原关系 ' + e.relation + '）'
+      const edge = { id: e.id, from: from, to: to, relation: rel, weight: typeof weight === 'number' ? weight : 1, source: src, evidence: (ev + note).slice(0, 300), createdAt: nowMs() }
+      store.edges[i] = edge
+      return edge
     }
-    const edge = { id: nextId('e'), from: from, to: to, relation: relation, weight: typeof weight === 'number' ? weight : 1, source: source || 'manual', evidence: evidence ? String(evidence).slice(0, 300) : '', createdAt: nowMs() }
+    const edge = { id: nextId('e'), from: from, to: to, relation: rel, weight: typeof weight === 'number' ? weight : 1, source: src, evidence: ev, createdAt: nowMs() }
     store.edges.push(edge)
     return edge
   }
@@ -1666,7 +1716,6 @@ function applyHost(ctx) {
   }, 'rtasset: auto review tick')
 
   console.log('[rtasset] host half ready; base =', JINA_MCP_BASE)
-}
 
 return {
   name: 'redteam-asset-graph',

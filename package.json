@@ -11,7 +11,7 @@
   "scripts": {
     "build:asset-graph": "node packages/asset-graph/tools/build-lib.mjs",
     "check:asset-graph": "node packages/asset-graph/tools/build-lib.mjs --check",
-    "test:asset-graph": "node packages/asset-graph/test/render-smoke.mjs",
+    "test:asset-graph": "node packages/asset-graph/test/edge-dedupe.mjs && node packages/asset-graph/test/static-bundle-smoke.mjs && node packages/asset-graph/test/render-smoke.mjs",
     "build": "npm run build:asset-graph && npm run build:attack-matrix && npm run build:memory && npm run build:report",
     "check": "npm run check:asset-graph && npm run check:attack-matrix && npm run check:memory && npm run check:report",
     "test": "npm run test:asset-graph",
@@ -20,7 +20,10 @@
     "build:memory": "node packages/memory/tools/build-lib.mjs",
     "check:memory": "node packages/memory/tools/build-lib.mjs --check",
     "build:report": "node packages/report/tools/build-lib.mjs",
-    "check:report": "node packages/report/tools/build-lib.mjs --check"
+    "check:report": "node packages/report/tools/build-lib.mjs --check",
+    "test:asset-graph-edge": "node packages/asset-graph/test/edge-dedupe.mjs",
+    "test:asset-graph-static": "node packages/asset-graph/test/static-bundle-smoke.mjs",
+    "test:asset-graph-render": "node packages/asset-graph/test/render-smoke.mjs"
   },
   "engines": {
     "node": ">=20"
