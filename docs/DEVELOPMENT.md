@@ -90,6 +90,10 @@ patch 条目是 `@deepseek-ai/cordis-plugin-include` 的 **`PatchOptions`**，�
   要引用仓库路径就用**绝对路径**，否则会被解析成 `~/.dsh/...` 的错路径。
 - **web profile 里 `hmr` 是 `disabled: true`**，所以 `patchReload: live` 实际不生效。
   **改完宿主组合必须重启 `dsh web`**。
+- **重启 `dsh web` 会清空所有动态插件**：它们只存在于 Node 进程里，不落盘。重启后再跑一次
+  装载器即可恢复（`cordis_run` 会报 `no dynamic plugin "<id>" in this process`，就是这个原因）。
+  **插件自己的数据文件不受影响** —— 记忆库 / 报告库 / 攻击矩阵都在磁盘上（本机的落点是
+  `/home/kali/桌面/`，见 §5.1）。
 - 会话沙箱只认工作区内的**绝对路径**；相对路径与 `/tmp` 通常读不到也写不进。
 
 ## 6. 本仓库的两条生成约定
