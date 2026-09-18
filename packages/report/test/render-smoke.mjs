@@ -1,7 +1,8 @@
-// 红队报告 · Client 半边渲染测试（静态 bundle 形态）
+// 红队报告 · legacy Client template 渲染回归（75 项，不代表发布产物）
 //
-// 为什么需要它：发布出去的是 lib/client.js —— 交给 client-modules 的 CJS 工厂，
-// 与 src/client.js 的动态形态完全不同。这个包是从资产图谱复制骨架来的，因此继承了
+// 此测试用 lib/parts 与原 src/client.js 组装旧版 CJS 模板，保留旧 UI 的回归覆盖；
+// 真实发布 lib/client.js 的 workspace/observer/settingsHub 行为由 published-smoke.mjs 检查。
+// 这个包是从资产图谱复制骨架来的，因此继承了
 // 一个真实缺陷：垫片里的 RPC 路径被写死成了 /dsh-redteam-asset-graph/rpc。
 // 所以这里**把实际请求的 url 钉进断言** —— 只记 method 的话，路径写错成别的插件也测不出来。
 //
@@ -13,10 +14,9 @@
 //
 // 用法: node test/render-smoke.mjs
 
-import fs from 'node:fs'
-import path from 'node:path'
+import { buildLegacyClient } from './legacy-fixture.mjs'
 
-const libClient = path.join(import.meta.dirname, '..', 'lib', 'client.js')
+const legacyClientSource = buildLegacyClient()
 
 let pass = 0
 const fails = []
@@ -184,11 +184,11 @@ globalThis.fetch = async (url, init) => {
 }
 
 // ── 加载 bundle ─────────────────────────────────────────────────────────────
-console.log('加载 lib/client.js')
+console.log('LEGACY TEMPLATE regression: lib/parts + untransformed src/client.js (not the published bundle)')
 let registration = null
 globalThis.window = { __ModuleLoader__: { load: (r) => { registration = r } } }
 try {
-  new Function('window', 'document', 'fetch', fs.readFileSync(libClient, 'utf8'))(globalThis.window, undefined, globalThis.fetch)
+  new Function('window', 'document', 'fetch', legacyClientSource)(globalThis.window, undefined, globalThis.fetch)
 } catch (e) {
   console.log('  ✗ 求值失败: ' + e.constructor.name + ': ' + e.message)
   process.exit(1)
@@ -235,7 +235,7 @@ console.log('\n[0] 样式只引用注册过的主题 token')
     '--dsw-alias-state-error-primary', '--dsw-alias-state-success-primary', '--dsw-alias-state-warn-primary',
     '--dsw-specific-sidebar-fill',
   ]
-  const src = fs.readFileSync(libClient, 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n')
+  const src = legacyClientSource.split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n')
   const used = Array.from(new Set(src.match(/--dsw-[a-z0-9-]+/g) || []))
   const unknown = used.filter((t) => TOKENS.indexOf(t) < 0)
   ok(used.length > 5, '样式中确实用了主题 token（' + used.length + ' 个）')

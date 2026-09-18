@@ -1,8 +1,7 @@
 {
   "name": "dsh-redteam-report",
-  "version": "0.1.0",
-  "private": true,
-  "description": "DSH 红队报告插件：把资产图谱与研判结论汇成可交付的报告",
+  "version": "0.2.0",
+  "description": "DSH 红队报告：按工作区隔离，切换时自动采集文件与会话并生成可导出的报告",
   "license": "MIT",
   "author": "fasthei",
   "repository": {
@@ -34,29 +33,31 @@
     "tools",
     "cordis.patch.yml",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "WORKSPACE-REPORTS.md"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
     "client": {
       "platform": "web"
-    },
-    "dynamic": {
-      "hostHalf": "src/host.js",
-      "clientHalf": "src/client.js"
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": "*"
+    "@deepseek-ai/dsh-tools": "*",
+    "dsh-redteam-memory": "^0.4.0"
   },
   "scripts": {
     "build:lib": "node tools/build-lib.mjs",
     "check:lib": "node tools/build-lib.mjs --check",
     "prepack": "node tools/build-lib.mjs --check",
     "publish:gh": "node tools/prepare-gh-packages.mjs",
-    "test": "node test/docx-smoke.mjs && node test/report-flow.mjs && node test/render-smoke.mjs",
+    "test": "node test/docx-smoke.mjs && node test/report-flow.mjs && node test/render-smoke.mjs && node test/workspace-evidence.mjs && node test/workspace-runtime.mjs && node test/published-smoke.mjs",
     "test:docx": "node test/docx-smoke.mjs",
     "test:flow": "node test/report-flow.mjs",
     "test:render": "node test/render-smoke.mjs"

@@ -33,5 +33,5 @@
 
 export const name = '__PLUGIN_NAME__'
 // 三个工具注册进宿主 tools 注册表；这里声明本半边硬依赖的服务。
-export const inject = ['fs', 'shell', 'timer', 'webServer']
+export const inject = ['fs', 'shell', 'timer', 'tools', 'workspaceRegistry', 'webServer']
 export { applyHost as apply }

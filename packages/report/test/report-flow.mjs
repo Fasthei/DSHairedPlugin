@@ -1,4 +1,5 @@
-// 红队报告 · Host 半边测试
+// 红队报告 · legacy Host 引擎回归（102 项，不代表发布入口）
+// 常驻发布入口由 published-smoke.mjs 直接测试 lib/host.js。
 //
 // 覆盖范围：
 //   1. 装载：两个模型工具、RPC 路由
@@ -19,7 +20,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 
-const libHost = path.join(import.meta.dirname, '..', 'lib', 'host.js')
+import { loadLegacyHost } from './legacy-fixture.mjs'
+const libHost = 'legacy fixture (lib/parts + src/host.js + src/docx.js)'
+console.log('LEGACY ENGINE regression: published entry is tested separately.')
 
 let pass = 0
 const fails = []
@@ -30,7 +33,7 @@ function ok(cond, label) {
 
 let mod
 try {
-  mod = await import(libHost)
+  mod = await loadLegacyHost()
 } catch (e) {
   // 刻意不静默跳过：解析不到依赖时必须红，否则就成了「绿但没跑」。
   console.error('无法加载 ' + libHost + '：' + e.message)
@@ -201,7 +204,7 @@ const ctx = {
   },
 }
 
-mod.apply(ctx)
+await mod.apply(ctx)
 
 function rpc(method, args) {
   return new Promise((resolve, reject) => {

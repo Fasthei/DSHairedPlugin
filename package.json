@@ -26,7 +26,7 @@
     "test:asset-graph-render": "node packages/asset-graph/test/render-smoke.mjs",
     "test:attack-matrix": "node packages/attack-matrix/test/scan-flow.mjs && node packages/attack-matrix/test/static-bundle-smoke.mjs",
     "test:memory": "node packages/memory/test/memory-flow.mjs && node packages/memory/test/render-smoke.mjs",
-    "test:report": "node packages/report/test/docx-smoke.mjs && node packages/report/test/report-flow.mjs && node packages/report/test/render-smoke.mjs && npm run test:report-workspace",
+    "test:report": "node packages/report/test/docx-smoke.mjs && node packages/report/test/report-flow.mjs && node packages/report/test/render-smoke.mjs && npm run test:report-workspace && node packages/report/test/published-smoke.mjs",
     "test:report-workspace": "node packages/report/test/workspace-evidence.mjs && node packages/report/test/workspace-runtime.mjs"
   },
   "engines": {

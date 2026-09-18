@@ -7,7 +7,7 @@ export function rptRedactEvidence(text) {
   let value = String(text == null ? '' : text)
   value = value.replace(/-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|$)/gi, '[REDACTED PRIVATE KEY]')
   value = value.replace(/\b(Bearer|Basic)([ \t]+)[A-Za-z0-9._~+\/=-]+/gi, '$1$2[REDACTED]')
-  value = value.replace(/\b(?:sk[-_][A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|github_pat_[A-Za-z0-9_]{12,}|AKIA[A-Z0-9]{16})\b/g, '[REDACTED]')
+  value = value.replace(/\b(?:sk[-_][A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|github_pat_[A-Za-z0-9_]{12,}|npm_[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})\b/g, '[REDACTED]')
   value = value.replace(/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/@]+(?::[^\s/@]*)?@/gi, '$1[REDACTED]@')
   // YAML literal/folded secrets: discard the indented body as well as its marker.
   const key = '[A-Za-z0-9_-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|authorization)[A-Za-z0-9_-]*'

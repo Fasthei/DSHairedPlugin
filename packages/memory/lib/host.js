@@ -94,7 +94,7 @@ function applyHost(ctx) {
 //     └─ 同步 → Milvus（向量召回 + 可选重排：jina / siliconflow / dashscope / cohere / bigmodel）
 //                向量模型（阿里 tongyi-embedding-vision-flash / 智谱 Embedding-3 / OpenAI 兼容）
 //     └─ 同步失败也不影响读写：检索自动退回本地关键词匹配，面板上能看到待同步条数。
-//   S3（Milvus 用的存储桶，例如 mimo）：连通测试 / 列举 / 整库导出（导出源同样是本地库）
+//   MinIO（Milvus 用的存储桶，例如 mimo）：连通测试 / 列举 / 整库导出（导出源同样是本地库）
 //
 // 这条「本地优先」的顺序是刻意的：记忆是给人用的，不该因为外部服务没配好就写不进去。
 // 对话捕获（工作区里有人说「写入记忆」）尤其依赖它 —— 捕获必须「说了就记住」。
@@ -679,7 +679,7 @@ function applyHost(ctx) {
     return -1
   }
 
-  // ── S3（Milvus 的存储桶，例如 mimo）：curl 自带 --aws-sigv4 ────────────────
+  // ── MinIO（Milvus 的存储桶，例如 mimo）：curl 自带 --aws-sigv4 ────────────────
   function s3Cfg(s) { return (s || settings()).s3 }
   function s3Ready(s) {
     const c = s3Cfg(s)
@@ -697,9 +697,9 @@ function applyHost(ctx) {
 
   async function s3Call(method, key, query, body, s, opts) {
     const c = s3Cfg(s)
-    if (!String(c.endpoint || '').trim()) throw new Error('未配置 S3 端点')
+    if (!String(c.endpoint || '').trim()) throw new Error('未配置 MinIO 端点')
     const shell = ctx.get('shell')
-    if (shell === undefined || shell === null) throw new Error('shell 服务不可用（S3 走 curl）')
+    if (shell === undefined || shell === null) throw new Error('shell 服务不可用（MinIO 走 curl）')
     const region = String(c.region || 'us-east-1')
     const t = intOf(opts && opts.timeoutMs, HTTP_TIMEOUT_MS)
     const parts = ['curl -sS -m ' + Math.ceil(t / 1000), '-X ' + method]
@@ -715,12 +715,12 @@ function applyHost(ctx) {
     const res = await shell.run(spec)
     const raw = res && res.stdout ? String(res.stdout.text || '') : ''
     const errText = res && res.stderr ? String(res.stderr.text || '') : ''
-    if (res && res.timedOut) throw new Error('S3 请求超时')
+    if (res && res.timedOut) throw new Error('MinIO 请求超时')
     const cut = raw.lastIndexOf('\n')
     const text = cut >= 0 ? raw.slice(0, cut) : raw
     const code = cut >= 0 ? Number(raw.slice(cut + 1).trim()) : 0
     if (res && res.exitCode !== 0) throw new Error('curl 退出码 ' + res.exitCode + '：' + clip(errText || text, 240))
-    if (!(code >= 200 && code < 300)) throw new Error('S3 HTTP ' + code + '：' + clip(text || errText, 400))
+    if (!(code >= 200 && code < 300)) throw new Error('MinIO HTTP ' + code + '：' + clip(text || errText, 400))
     return text
   }
 
@@ -1543,7 +1543,23 @@ function applyHost(ctx) {
     return { ok: true, snapshot: snapshot() }
   })
 
-  harness.handle('testMilvus', async function () {
+  // Connection/configuration failures are business results, not failed RPC handlers.
+  function connectionTestError(error) {
+    const message = msgOf(error)
+    const hint = /未配置|未启用|未选模型|未填/.test(message)
+      ? '。请在「设置 → 红队设置」填写对应配置，先点击「保存记忆设置」，再测试；测试使用已保存配置。' : ''
+    return { ok: false, error: message + hint }
+  }
+  function handleConnectionTest(method, test) {
+    harness.handle(method, async function (args) {
+      try {
+        const result = await test(args)
+        return result && result.ok === false ? connectionTestError(result.error || '连接测试失败') : result
+      } catch (error) { return connectionTestError(error) }
+    })
+  }
+
+  handleConnectionTest('testMilvus', async function () {
     await ensureLoaded()
     const t0 = nowMs()
     const list = await milvusListCollections()
@@ -1558,8 +1574,10 @@ function applyHost(ctx) {
     return { ok: true, collections: list, collection: collectionName(), exists: has, rowCount: store.meta.rowCount || 0, ms: nowMs() - t0 }
   })
 
-  harness.handle('testEmbed', async function () {
+  handleConnectionTest('testEmbed', async function () {
     await ensureLoaded()
+    // Custom OpenAI-compatible endpoints may intentionally allow anonymous access.
+    if (!embedReady() && settings().embed.provider !== 'openai') return { ok: false, error: '未配置向量模型 API Key' }
     const t0 = nowMs()
     const vecs = await embedTexts(['连接测试：红队记忆库'], null)
     const dim = vecs[0].length
@@ -1567,7 +1585,7 @@ function applyHost(ctx) {
     return { ok: true, model: settings().embed.model, dimension: dim, ms: nowMs() - t0, head: vecs[0].slice(0, 6) }
   })
 
-  harness.handle('testRerank', async function () {
+  handleConnectionTest('testRerank', async function () {
     await ensureLoaded()
     if (!rerankReady()) return { ok: false, error: '重排未启用或未选模型' }
     const docs = ['提示词注入：把指令伪装成数据塞进上下文', '模型窃取：通过大量查询近似复制模型', '端口扫描：枚举目标开放端口']
@@ -1577,27 +1595,27 @@ function applyHost(ctx) {
     return { ok: true, model: settings().rerank.model, order: r, ms: nowMs() - t0 }
   })
 
-  harness.handle('testS3', async function () {
+  handleConnectionTest('testS3', async function () {
     await ensureLoaded()
-    if (!s3Cfg().enabled) return { ok: false, error: 'S3 未启用（先在上面勾选并填端点/桶）' }
+    if (!s3Cfg().enabled) return { ok: false, error: 'MinIO 未启用（先在上面勾选并填端点/桶）' }
     const xml = await s3Call('GET', '', 'list-type=2&max-keys=1', null, null)
     const parsed = parseS3List(xml)
-    log('ok', 'S3 连通：桶 ' + s3Cfg().bucket + ' 可列举')
+    log('ok', 'MinIO 连通：桶 ' + s3Cfg().bucket + ' 可列举')
     return { ok: true, bucket: s3Cfg().bucket, sample: parsed.objects.length }
   })
 
   harness.handle('s3List', async function (args) {
     await ensureLoaded()
-    if (!s3Cfg().enabled) return { ok: false, error: 'S3 未启用' }
+    if (!s3Cfg().enabled) return { ok: false, error: 'MinIO 未启用' }
     const r = await s3List(args && args.prefix, args && args.limit)
     return { ok: true, bucket: s3Cfg().bucket, objects: r.objects, truncated: r.truncated, nextToken: r.nextToken }
   })
 
-  // 把整库导出成 JSON 存进 S3（Milvus 的存储桶，例如 mimo）—— 备份 / 交付用。
+  // 把整库导出成 JSON 存进 MinIO（Milvus 的存储桶，例如 mimo）—— 备份 / 交付用。
   // 导出的源是**本地库**：本地才是权威数据，索引可能还没同步完。
   harness.handle('s3Backup', async function (args) {
     await ensureLoaded()
-    if (!s3Ready()) return { ok: false, error: 'S3 未启用或未填端点/桶' }
+    if (!s3Ready()) return { ok: false, error: 'MinIO 未启用或未填端点/桶' }
     const rows = store.entries.map(function (e) {
       return {
         id: e.id, title: e.title, text: e.text, tags: (e.tags || []).join(','), kind: e.kind,
@@ -1806,5 +1824,5 @@ function applyHost(ctx) {
 
 export const name = 'redteam-memory'
 // 三个工具注册进宿主 tools 注册表；这里声明本半边硬依赖的服务。
-export const inject = ['fs', 'shell', 'timer', 'webServer']
+export const inject = ['fs', 'shell', 'timer', 'webServer', 'tools']
 export { applyHost as apply }

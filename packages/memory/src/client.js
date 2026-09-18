@@ -8,7 +8,7 @@
 //
 // ── 两个界面，各管一件事 ──────────────────────────────────────────────────────
 //   红队记忆（main 面板）      知识库 / 检索 / 日志 —— 只用不管配
-//   红队设置（settings 页）    Milvus / 向量模型 / 重排 / S3 / 本地库 —— 只配不管用
+//   红队设置（settings 页）    Milvus / 向量模型 / 重排 / MinIO / 本地库 —— 只配不管用
 //
 // 分开的理由很具体：数据库地址、向量模型 Key 这些东西一年改两次，却原来占着记忆面板的
 // 一个大 tab；而「导入一份报告」「查一条技巧」每天都要用。配置挪到 DSH 设置里（settings.section
@@ -24,6 +24,48 @@
 
 function applyClient(ctx) {
   const slots = ctx.slots
+
+  // Shared settings contribution point. Values are React components, never JSON/RPC data.
+  let reportComponent = null
+  let settingsClosed = false
+  const settingsListeners = new Set()
+  function notifySettings() {
+    for (const listener of settingsListeners) listener()
+  }
+  const settingsHub = {
+    current() { return reportComponent },
+    subscribe(listener) {
+      if (settingsClosed) throw new Error('红队设置页已卸载')
+      if (typeof listener !== 'function') throw new TypeError('设置订阅者必须是函数')
+      settingsListeners.add(listener)
+      listener()
+      return function () { settingsListeners.delete(listener) }
+    },
+    register(component) {
+      if (settingsClosed) throw new Error('红队设置页已卸载')
+      if (typeof component !== 'function' && (!component || typeof component !== 'object')) throw new TypeError('报告设置必须提供 React 组件')
+      if (reportComponent !== null) throw new Error('报告设置已注册，请先卸载旧组件')
+      reportComponent = component
+      notifySettings()
+      let registered = true
+      return function () {
+        if (!registered) return
+        registered = false
+        if (reportComponent !== component) return
+        reportComponent = null
+        notifySettings()
+      }
+    },
+  }
+  ctx.effect(function () {
+    const dispose = ctx.provide('redteamSettingsUI', settingsHub)
+    return function () {
+      settingsClosed = true
+      reportComponent = null
+      settingsListeners.clear()
+      dispose()
+    }
+  }, 'redteam-memory: shared settings hub')
 
   const PANEL_KEY = 'redteam-memory'
   const SETTINGS_KEY = 'redteam-memory'
@@ -120,7 +162,7 @@ function applyClient(ctx) {
       { g: 'rerank', k: 'apiKey', label: 'API Key', secret: true },
       { g: 'rerank', k: 'baseUrl', label: '自定义接口地址', ph: '留空用官方默认' },
 
-      { g: 's3', k: 'enabled', label: '关联 S3（Milvus 存储桶）', bool: true },
+      { g: 's3', k: 'enabled', label: '关联 MinIO（Milvus 存储桶）', bool: true },
       { g: 's3', k: 'endpoint', label: '端点', ph: 'http://minio:9000' },
       { g: 's3', k: 'bucket', label: '桶名', ph: 'mimo' },
       { g: 's3', k: 'region', label: 'Region', ph: 'us-east-1' },
@@ -168,7 +210,7 @@ function applyClient(ctx) {
   // 打开设置页的提示。DSH 没有「打开设置」的客户端服务（layout.selectPanel 只选主面板），
   // 所以这里给出确切路径，而不是放一个点了没反应的按钮。
   function settingsHint() {
-    return el('span', { className: 'rtm-hint' }, '数据库 / 向量模型 / 重排 / S3 在「设置 → 红队设置」里')
+    return el('span', { className: 'rtm-hint' }, '数据库 / 向量模型 / 重排 / MinIO 在「设置 → 红队设置」里')
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -182,7 +224,6 @@ function applyClient(ctx) {
     const [toast, setToast] = React.useState('')
     const [draft, setDraft] = React.useState(null)
     const [list, setList] = React.useState({ entries: [], total: 0, offset: 0 })
-    const [keyword, setKeyword] = React.useState('')
     const [selected, setSelected] = React.useState([])
     const [detail, setDetail] = React.useState(null)
     const [importPath, setImportPath] = React.useState('')
@@ -243,7 +284,7 @@ function applyClient(ctx) {
     function loadList(offset) {
       const off = typeof offset === 'number' ? offset : list.offset
       setBusy('list')
-      return host.call('listKnowledge', jsonArgs({ keyword: keyword.trim(), limit: PAGE, offset: off }))
+      return host.call('listKnowledge', jsonArgs({ limit: PAGE, offset: off }))
         .then(function (r) {
           if (!r || r.ok !== true) { setError((r && r.error) || '读取列表失败'); return }
           setError(null)
@@ -268,10 +309,6 @@ function applyClient(ctx) {
           loadList(0)
         }
       })
-    }
-
-    function doSeed() {
-      call('seed', {}, '导入内置知识包').then(function (r) { if (r && r.ok === true) loadList(0) })
     }
 
     function doSyncIndex(all) {
@@ -362,14 +399,8 @@ function applyClient(ctx) {
 
     function kbTab() {
       return el('div', { className: 'rtm-body' },
-        // 一行：找 / 内置知识包 / 同步索引
+        // 知识库只保留同步入口；查询在独立检索页，导入走文件入口。
         el('div', { className: 'rtm-tools' },
-          el('input', {
-            className: 'rtm-in rtm-grow', value: keyword, placeholder: '按标题 / 正文 / 标签 / 来源找…',
-            onChange: function (e) { setKeyword(e.target.value) }, onKeyDown: function (e) { if (e.key === 'Enter') loadList(0) },
-          }),
-          btn('查询', { disabled: !!busy }, function () { loadList(0) }),
-          btn('导入内置知识包', { disabled: !!busy, title: '16 条 AI 安全知识与进攻技巧（先落本地库，不依赖向量模型）' }, doSeed),
           btn('同步索引' + (st && st.pending ? '（' + st.pending + '）' : ''), {
             disabled: !!busy || !(st && st.pending > 0),
             title: st && st.pending > 0 ? '把本地还没进索引的 ' + st.pending + ' 条同步到 Milvus' : '本地条目都已进索引',
@@ -428,7 +459,7 @@ function applyClient(ctx) {
         card('知识库', '本地 ' + ((st && st.localCount) || 0) + ' 条 · 命中 ' + list.total + ' 条',
           el('div', null,
             (list.entries || []).length === 0
-              ? el('div', { className: 'rtm-dim' }, keyword.trim() ? '没有匹配「' + keyword.trim() + '」的条目。' : '本地库还没有条目。可以「导入内置知识包」，或导入一份 pdf / word / md / txt。')
+              ? el('div', { className: 'rtm-dim' }, '本地库还没有条目。请导入一份 pdf / word / md / txt。')
               : el('table', { className: 'rtm-tbl' },
                 el('thead', null, el('tr', null,
                   el('th', { className: 'rtm-th-x' }, ''),
@@ -530,6 +561,16 @@ function applyClient(ctx) {
   // ══════════════════════════════════════════════════════════════════════════
   // 红队设置（DSH 设置里的一页）
   // ══════════════════════════════════════════════════════════════════════════
+  function UnifiedSettingsPage() {
+    const [Report, setReport] = React.useState(function () { return settingsHub.current() })
+    React.useEffect(function () {
+      return settingsHub.subscribe(function () { setReport(function () { return settingsHub.current() }) })
+    }, [])
+    return el('div', { className: 'rtm-body' },
+      el(SettingsPage),
+      Report ? el(Report) : el('div', { className: 'rtm-set' }, '报告设置尚未加载；启用红队报告插件后将在此显示。'))
+  }
+
   function SettingsPage() {
     const [snap, setSnap] = React.useState(null)
     const [draft, setDraft] = React.useState(null)
@@ -605,11 +646,11 @@ function applyClient(ctx) {
 
     return el('div', { className: 'rtm-set' },
       el('div', { className: 'rtm-head' },
-        el('span', { className: 'rtm-brand' }, '红队设置'),
+        el('span', { className: 'rtm-brand' }, '记忆与向量存储'),
         st ? el('span', { className: 'rtm-stat' },
           '本地 ' + (st.localCount || 0) + ' 条 · 索引 ' + (st.indexed || 0) + ' 条' + (st.pending ? '（待同步 ' + st.pending + '）' : '')) : null,
         el('span', { className: 'rtm-sp' }),
-        btn('保存设置', { primary: true, disabled: !!busy }, function () { call('saveSettings', draft, '保存设置') })),
+        btn('保存记忆设置', { primary: true, disabled: !!busy }, function () { call('saveSettings', draft, '保存记忆设置') })),
 
       error ? el('div', { className: 'rtm-errbar' }, el('span', null, error), el('button', { className: 'rtm-x', onClick: function () { setError(null) } }, '×')) : null,
       toast ? el('div', { className: 'rtm-ok' }, toast) : null,
@@ -620,28 +661,28 @@ function applyClient(ctx) {
           btn('测试 Milvus', { disabled: !!busy }, function () { test('Milvus', 'testMilvus') }),
           btn('测试向量模型', { disabled: !!busy }, function () { test('向量模型', 'testEmbed') }),
           btn('测试重排', { disabled: !!busy }, function () { test('重排模型', 'testRerank') }),
-          btn('测试 S3', { disabled: !!busy }, function () { test('S3', 'testS3') }),
+          btn('测试 MinIO', { disabled: !!busy }, function () { test('MinIO', 'testS3') }),
           el('span', { className: 'rtm-sp' }),
           btn('同步索引' + (st && st.pending ? '（' + st.pending + '）' : ''), { disabled: !!busy || !(st && st.pending > 0) }, function () { call('syncIndex', { all: false }, '同步索引') }),
           btn('整库重建索引', { disabled: !!busy, title: '把本地全部条目重新写一遍索引（换过向量模型或维度后用它）' }, function () { call('syncIndex', { all: true }, '整库重建索引') })),
-        testLine('Milvus'), testLine('向量模型'), testLine('重排模型'), testLine('S3'),
+        testLine('Milvus'), testLine('向量模型'), testLine('重排模型'), testLine('MinIO'),
 
         el('div', { className: 'rtm-grid' },
           card('Milvus', '向量库', group('milvus')),
           card('向量模型', 'Embedding', group('embed')),
           card('重排模型', '可选', group('rerank')),
-          card('S3', 'Milvus 的存储桶', group('s3')),
+          card('MinIO', 'Milvus 的存储桶', group('s3')),
           card('本地库', '权威数据', groupTop(fields, draft, setDraft, snap),
             el('div', { className: 'rtm-row' },
               btn('删除向量索引', { danger: true, mini: true, disabled: !!busy || !(draft.milvus && draft.milvus.uri), title: '删掉整个 collection；本地库不动' }, function () { call('dropCollection', {}, '删除向量索引') }),
-              btn('列举 S3 对象', { mini: true, disabled: !!busy }, function () {
+              btn('列举 MinIO 对象', { mini: true, disabled: !!busy }, function () {
                 setBusy('s3')
                 host.call('s3List', jsonArgs({ prefix: (draft.s3.prefix) || '', limit: 30 }))
-                  .then(function (r) { if (r && r.ok === true) { setS3objs(r); setError(null) } else setError((r && r.error) || 'S3 列举失败') })
+                  .then(function (r) { if (r && r.ok === true) { setS3objs(r); setError(null) } else setError((r && r.error) || 'MinIO 列举失败') })
                   .catch(function (e) { setError(reportError(e)) })
                   .then(function () { setBusy('') })
               }),
-              btn('导出到 S3', { mini: true, disabled: !!busy, title: '把整个知识库导出成 JSON 放进 S3 桶（导出源是本地库）' }, function () { call('s3Backup', {}, '导出到 S3') }))),
+              btn('导出到 MinIO', { mini: true, disabled: !!busy, title: '把整个知识库导出成 JSON 放进 MinIO 桶（导出源是本地库）' }, function () { call('s3Backup', {}, '导出到 MinIO') }))),
 
         s3objs ? card('s3://' + s3objs.bucket, s3objs.objects.length + ' 个对象' + (s3objs.truncated ? '（已截断）' : ''),
           el('table', { className: 'rtm-tbl' },
@@ -805,7 +846,7 @@ function applyClient(ctx) {
   // 配置进 DSH 设置里的一页，而不是占着数据面板的 tab。
   ctx.effect(function () {
     return slots.inject('settings.section', function () {
-      return slots.register({ name: 'settings.section', id: SETTINGS_KEY, order: 100, label: '红队设置' }, SettingsPage)
+      return slots.register({ name: 'settings.section', id: SETTINGS_KEY, order: 100, label: '红队设置' }, UnifiedSettingsPage)
     })
   }, 'redteam-memory: 设置页')
 

@@ -51,6 +51,7 @@ const fsService = {
 
 // ── 假 shell：按 URL 路由，返回构造好的响应，并记录每条命令 ──────────────────
 const calls = []
+let shellFailure = false
 let indexedIds = []
 function bodyOf(cmd) {
   const m = /--data-binary '([\s\S]*?)'(?=\s|$)/.exec(cmd)
@@ -66,6 +67,7 @@ const EMBED_DIM = 8
 const shell = {
   resolve(spec) { return spec },
   async run(spec) {
+    if (shellFailure) throw new Error('test transport unavailable')
     const cmd = spec.command
     calls.push(cmd)
     const reply = function (obj, code) {
@@ -172,6 +174,7 @@ const shell = {
   },
 }
 
+const responseStatus = {}
 const registeredRoutes = []
 const handlers = {}
 const registeredTools = []
@@ -206,6 +209,7 @@ function rpc(method, args) {
       statusCode: 200,
       setHeader() {},
       end(text) {
+        responseStatus[method] = this.statusCode
         let payload = null
         try { payload = JSON.parse(text || '{}') } catch (e) { reject(new Error('响应不是 JSON: ' + text)); return }
         if (payload && payload.ok === true) resolve(payload.result)
@@ -236,6 +240,7 @@ async function waitFor(fn, ms) {
 console.log('\n[1] 装载：工具注册与 RPC 路由')
 ok(registeredRoutes.length === 1, '注册了 1 条 RPC 路由' + (registeredRoutes[0] ? '：' + registeredRoutes[0].path : ''))
 ok(!!handlers.rpc, '捕获到 RPC handler')
+ok(mod.inject.includes('tools'), '静态 Host 声明 tools 硬依赖')
 ok(registeredTools.length === 3, '注册了 3 个模型工具（实际 ' + registeredTools.length + '）')
 const names = registeredTools.map((t) => t.name).sort()
 ok(names.join(',') === 'memory_add,memory_delete,memory_search', '工具名正确：' + names.join(', '))
@@ -263,6 +268,18 @@ console.log('\n[2] 快照与设置')
     '重排预设含 jina/cohere/siliconflow/dashscope/bigmodel：' + rk)
 }
 
+console.log('\n[2b] 未配置连接测试返回业务错误，不抛 HTTP Handler 异常')
+{
+  const before = calls.length
+  for (const method of ['testMilvus', 'testEmbed', 'testRerank', 'testS3']) {
+    const r = await rpc(method, null)
+    ok(r.ok === false && typeof r.error === 'string', method + ' 缺配置返回 {ok:false,error}')
+    ok(responseStatus[method] === 200, method + ' 缺配置仍为 HTTP 200 业务响应')
+    ok(r.error.includes('保存记忆设置'), method + ' 提醒先保存记忆设置')
+  }
+  ok(calls.length === before, '缺配置的四个连接测试不发外部请求')
+}
+
 const S = {
   milvus: { uri: 'http://127.0.0.1:19530', token: 'tok', dbName: 'default', collection: 'redteam_memory', metric: 'COSINE' },
   embed: { provider: 'dashscope', model: 'tongyi-embedding-vision-flash', apiKey: 'sk-test', dimension: EMBED_DIM, baseUrl: '' },
@@ -278,6 +295,17 @@ const S = {
   const parsed = JSON.parse(stored || '{}')
   ok(parsed.settings.embed.model === 'tongyi-embedding-vision-flash', '落盘的向量模型正确')
   ok(parsed.settings.rerank.enabled === true, '落盘的重排开关正确')
+}
+
+console.log('\n[2c] 网络故障同样返回业务错误')
+{
+  shellFailure = true
+  for (const method of ['testMilvus', 'testEmbed', 'testRerank', 'testS3']) {
+    const r = await rpc(method, null)
+    ok(r.ok === false && r.error.includes('test transport unavailable'), method + ' 捕获真实传输异常')
+    ok(responseStatus[method] === 200, method + ' 传输异常不是 HTTP 500')
+  }
+  shellFailure = false
 }
 
 console.log('\n[3] 向量模型：请求形状（这是最容易写错的部分）')

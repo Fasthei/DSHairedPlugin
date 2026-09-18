@@ -7,7 +7,7 @@
 //
 // 这个包有两个界面，都要测：
 //   · 红队记忆（main 面板）：知识库 / 检索 / 日志 —— 只用不管配
-//   · 红队设置（settings.section 页）：Milvus / 向量模型 / 重排 / S3 / 本地库 —— 只配不管用
+//   · 红队设置（settings.section 页）：Milvus / 向量模型 / 重排 / MinIO / 本地库 —— 只配不管用
 // 配置从数据面板搬走这件事很容易「搬一半」：注册了设置页但面板还留着旧 tab，或者反过来。
 // 所以两边都断言。
 //
@@ -15,6 +15,8 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
 
 const libClient = path.join(import.meta.dirname, '..', 'lib', 'client.js')
 
@@ -73,6 +75,7 @@ function makeRenderer(Comp) {
       return tree
     },
     get dirty() { return c.dirty },
+    dispose() { for (const effect of Object.values(c.effects)) if (typeof effect.cleanup === 'function') effect.cleanup() },
   }
 }
 function textOf(node) {
@@ -102,6 +105,7 @@ async function settle(render) {
 const urls = []
 const calls = []
 const argsOf = {}
+let emptyList = false
 
 function fakeSnapshot() {
   return {
@@ -169,6 +173,7 @@ globalThis.fetch = async (url, init) => {
   else if (method === 'testS3') result = { ok: true, bucket: 'mimo', sample: 1 }
   else if (method === 's3List') result = { ok: true, bucket: 'mimo', objects: [{ key: 'kv/a.bin', size: 2048, lastModified: '2026-09-16T10:00:00Z' }], truncated: false }
   else result = { ok: true }
+  if (method === 'listKnowledge' && emptyList) result = { ...result, entries: [], total: 0 }
   return { ok: true, status: 200, json: async () => ({ ok: true, result }) }
 }
 
@@ -206,10 +211,13 @@ const slots = {
     return () => {}
   },
 }
+const provided = new Map()
+const fiberDisposers = []
 const ctx = {
   slots,
-  get: (n) => (n === 'slots' ? slots : undefined),
-  effect: (fn) => { const d = fn(); return typeof d === 'function' ? d : () => {} },
+  get: (n) => (n === 'slots' ? slots : provided.get(n)),
+  provide: (name, value) => { provided.set(name, value); return () => provided.delete(name) },
+  effect: (fn) => { const d = fn(); const dispose = typeof d === 'function' ? d : () => {}; fiberDisposers.push(dispose); return dispose },
   interval: () => () => {},
 }
 mod.apply(ctx)
@@ -263,10 +271,24 @@ ok(calls.indexOf('listKnowledge') >= 0, '调用了 listKnowledge')
 ok(text.indexOf('OWASP LLM01 提示词注入') >= 0, '列表里出现条目标题')
 ok(text.indexOf('间接注入：文档上传链路') >= 0, '列表里出现第二条')
 ok(text.indexOf('owasp,注入') >= 0, '显示标签')
-ok(text.indexOf('导入内置知识包') >= 0, '有「导入内置知识包」按钮')
+ok(text.indexOf('导入内置知识包') < 0, '没有「导入内置知识包」按钮或旧提示')
+ok(findAll(tree, n => n.type === 'button' && textOf(n) === '查询').length === 0, '知识库没有查询按钮')
+ok(findAll(tree, n => n.type === 'input' && String(n.props.placeholder || '').includes('按标题')).length === 0, '知识库没有关键词查询输入框')
 ok(text.indexOf('同步索引（2）') >= 0, '有「同步索引」按钮并带上待同步条数')
 ok(text.indexOf('已索引') >= 0 && text.indexOf('仅本地') >= 0, '索引状态逐条标出来')
 ok(text.indexOf('删除选中') >= 0 && text.indexOf('删除向量索引') >= 0, '删除按钮在（措辞区分本地与索引）')
+
+{
+  emptyList = true
+  const emptyRender = makeRenderer(Panel)
+  emptyRender.run()
+  await settle(emptyRender)
+  const emptyText = textOf(emptyRender.run())
+  ok(emptyText.includes('请导入一份 pdf / word / md / txt'), '空库提示指向文件导入')
+  ok(!emptyText.includes('内置知识包'), '空库不再提示 seed 导入')
+  emptyRender.dispose()
+  emptyList = false
+}
 
 console.log('\n[4b] 导入：只有一条路、四种格式')
 {
@@ -375,24 +397,41 @@ console.log('\n[6] 检索页：结果与分数')
 
 console.log('\n[7] 红队设置页：四组配置 + 本地库')
 {
-  const srender = makeRenderer(Settings)
+  const unifiedRender = makeRenderer(Settings)
+  let unifiedTree = unifiedRender.run()
+  const hub = provided.get('redteamSettingsUI')
+  ok(!!hub && hub.current() === null, '提供 redteamSettingsUI 且初始无报告组件')
+  ok(textOf(unifiedTree).includes('报告设置尚未加载'), '缺少报告插件时显示可读提示')
+  const settingsNode = findAll(unifiedTree, n => typeof n.type === 'function')[0]
+  ok(!!settingsNode, '统一页包含记忆 SettingsPage')
+  const srender = makeRenderer(settingsNode.type)
   let stree = srender.run()
   await settle(srender)
   stree = srender.run()
   let stext = textOf(stree)
-  ok(stext.indexOf('红队设置') >= 0, '标题出现')
+  ok(stext.indexOf('记忆与向量存储') >= 0, '统一页记忆标题为记忆与向量存储')
   ok(stext.indexOf('Milvus 地址') >= 0, '有 Milvus 地址输入框')
   ok(stext.indexOf('向量服务') >= 0 && stext.indexOf('向量模型') < 0 || stext.indexOf('Embedding') >= 0, '有向量模型一组')
   ok(stext.indexOf('重排模型') >= 0, '有重排模型一组')
-  ok(stext.indexOf('桶名') >= 0, '有 S3 一组')
+  ok(stext.indexOf('桶名') >= 0, '有 MinIO 一组')
   ok(stext.indexOf('本地库') >= 0 && stext.indexOf('本地库文件') >= 0, '有本地库一组（含存储文件）')
   ok(stext.indexOf('默认返回条数') >= 0, '有默认返回条数')
-  ok(stext.indexOf('保存设置') >= 0, '有保存设置按钮')
+  ok(stext.indexOf('保存记忆设置') >= 0, '有保存记忆设置按钮')
   ok(stext.indexOf('整库重建索引') >= 0, '有整库重建索引')
   ok(stext.indexOf('删除向量索引') >= 0, '有删除向量索引')
-  ok(stext.indexOf('列举 S3 对象') >= 0 && stext.indexOf('导出到 S3') >= 0, 'S3 列举与导出按钮在')
-  ok(stext.indexOf('测试 Milvus') >= 0 && stext.indexOf('测试向量模型') >= 0 && stext.indexOf('测试重排') >= 0 && stext.indexOf('测试 S3') >= 0, '四个测试按钮都在')
+  ok(stext.indexOf('列举 MinIO 对象') >= 0 && stext.indexOf('导出到 MinIO') >= 0, 'S3 列举与导出按钮在')
+  ok(stext.indexOf('测试 Milvus') >= 0 && stext.indexOf('测试向量模型') >= 0 && stext.indexOf('测试重排') >= 0 && stext.indexOf('测试 MinIO') >= 0, '四个测试按钮都在')
   ok(stext.indexOf('不配也能记') >= 0, '说明「不配也能用」（本地优先）')
+  ok(!/\bS3\b/.test(stext) && stext.includes('MinIO'), '界面仅展示 MinIO，协议名称不混入标签')
+  const minioTest = findAll(stree, n => n.type === 'button' && textOf(n) === '测试 MinIO')[0]
+  ok(!!minioTest, '找到 MinIO 测试按钮')
+  if (minioTest) {
+    minioTest.props.onClick()
+    await settle(srender)
+    stree = srender.run()
+    ok(calls.includes('testS3'), 'MinIO 测试仍调用 testS3 RPC')
+    ok(textOf(stree).includes('✓ MinIO'), 'MinIO 测试结果保留业务显示')
+  }
 
   const inputsAll = findAll(stree, (n) => n.type === 'input')
   ok(inputsAll.some((n) => n.props.value === 'mimo'), '桶名默认值 mimo 已填入输入框')
@@ -427,21 +466,45 @@ console.log('\n[7] 红队设置页：四组配置 + 本地库')
     ok(calls.indexOf('testMilvus') >= 0, '点「测试 Milvus」调了 testMilvus')
     ok(stext.indexOf('✓ Milvus') >= 0, '测试结果渲染成成功提示')
   }
-  const s3Btn = findAll(stree, (n) => n.type === 'button' && textOf(n) === '列举 S3 对象')[0]
+  const s3Btn = findAll(stree, (n) => n.type === 'button' && textOf(n) === '列举 MinIO 对象')[0]
   if (s3Btn) {
     s3Btn.props.onClick()
     await settle(srender)
     stree = srender.run()
     stext = textOf(stree)
-    ok(calls.indexOf('s3List') >= 0, '点「列举 S3 对象」调了 s3List')
+    ok(calls.indexOf('s3List') >= 0, '点「列举 MinIO 对象」调了 s3List')
     ok(stext.indexOf('kv/a.bin') >= 0, '对象列表渲染出来')
   }
-  const saveBtn = findAll(stree, (n) => n.type === 'button' && textOf(n) === '保存设置')[0]
+  const saveBtn = findAll(stree, (n) => n.type === 'button' && textOf(n) === '保存记忆设置')[0]
   if (saveBtn) {
     saveBtn.props.onClick()
     await settle(srender)
-    ok(calls.indexOf('saveSettings') >= 0, '点「保存设置」调了 saveSettings')
+    ok(calls.indexOf('saveSettings') >= 0, '点「保存记忆设置」调了 saveSettings')
+    ok(argsOf.saveSettings.s3 && argsOf.saveSettings.s3.bucket === 'mimo', '保存仍使用原 s3 配置字段')
   }
+  function ReportSettings() { return createElement('div', null, '报告设置测试组件') }
+  let changes = 0
+  const unsubscribe = hub.subscribe(() => { changes++ })
+  ok(changes === 1, 'hub 订阅立即获得当前状态')
+  const unregister = hub.register(ReportSettings)
+  unifiedTree = unifiedRender.run()
+  const children = unifiedTree.props.children
+  ok(children[0].type === settingsNode.type && children[1].type === ReportSettings, '报告组件位于记忆 SettingsPage 之后')
+  ok(!textOf(unifiedTree).includes('尚未加载'), '报告注册后占位提示消失')
+  ok(changes === 2, '报告注册通知订阅者')
+  let duplicate = false
+  try { hub.register(ReportSettings) } catch { duplicate = true }
+  ok(duplicate, '重复注册报告组件被拒绝')
+  unregister(); unregister()
+  ok(changes === 3 && hub.current() === null, '注销幂等且清空当前报告组件')
+  ok(textOf(unifiedRender.run()).includes('尚未加载'), '报告卸载后恢复可读提示')
+  unsubscribe(); unsubscribe()
+  const unregisterNext = hub.register(ReportSettings)
+  unregister()
+  ok(hub.current() === ReportSettings && changes === 3, '旧注销器不会移除新注册，已退订观察者不再通知')
+  unifiedRender.run(); unifiedRender.dispose(); srender.dispose()
+  unregisterNext()
+  ok(!unifiedRender.dirty, '组件卸载时取消 hub 订阅')
 }
 
 console.log('\n[8] 日志页')
@@ -456,6 +519,52 @@ console.log('\n[8] 日志页')
     ok(text.indexOf('向量模型连通') >= 0, '日志行渲染出来')
     ok(text.indexOf('清空日志') >= 0, '有清空日志按钮')
   }
+}
+
+console.log('\n[9] shared hub 的 mock fiber 清理')
+render.dispose()
+const oldHub = provided.get('redteamSettingsUI')
+for (const dispose of fiberDisposers.reverse()) dispose()
+ok(!provided.has('redteamSettingsUI') && oldHub.current() === null, 'fiber 卸载移除服务并清空组件')
+let closed = false
+try { oldHub.register(() => null) } catch { closed = true }
+ok(closed, '已卸载 hub 拒绝迟到注册')
+
+console.log('\n[10] 真实 Cordis 的提供、依赖卸载与重载')
+{
+  const require = createRequire(import.meta.url)
+  const dependencyRequire = createRequire(require.resolve('@deepseek-ai/dsh-tools'))
+  const { Context } = await import(pathToFileURL(dependencyRequire.resolve('@deepseek-ai/cordis')).href)
+  const root = new Context()
+  const entries = new Set()
+  const removeSlots = root.provide('slots', {
+    inject(name, callback) { return callback() },
+    register(definition) { const key = definition.name; entries.add(key); return () => entries.delete(key) },
+  })
+  const removeTimer = root.provide('timer', {})
+  const fiber = await root.plugin(mod)
+  const hub = root.get('redteamSettingsUI')
+  ok(entries.size === 3, '真实 Cordis 挂载三个界面席位')
+  ok(!!hub && hub.current() === null, '真实 Cordis 服务已提供')
+  let applies = 0
+  const ReportComponent = () => createElement('div', null, '报告设置')
+  const consumer = await root.plugin({
+    name: 'memory-settings-test-consumer', inject: ['redteamSettingsUI'],
+    apply(c) { applies++; c.effect(() => c.redteamSettingsUI.register(ReportComponent)) },
+  })
+  ok(applies === 1 && hub.current() === ReportComponent, '依赖方可以注册报告组件')
+  await fiber.dispose()
+  await consumer.await()
+  ok(root.get('redteamSettingsUI', false) === undefined, '真实 fiber 卸载移除 hub 服务')
+  ok(hub.current() === null && entries.size === 0, '真实 fiber 卸载清空组件和界面席位')
+  const replacement = await root.plugin(mod)
+  await consumer.await()
+  ok(applies === 2 && root.get('redteamSettingsUI').current() === ReportComponent, '重载 provider 自动重新激活报告依赖方')
+  await consumer.dispose()
+  ok(root.get('redteamSettingsUI').current() === null, '卸载报告依赖方注销组件，不影响记忆配置')
+  await replacement.dispose()
+  await removeTimer(); await removeSlots()
+  ok(entries.size === 0 && root.get('redteamSettingsUI', false) === undefined, '最终无遗留席位或服务')
 }
 
 console.log('\n' + (fails.length === 0 ? '✓ 全部通过（' + pass + ' 项）' : '✗ 失败 ' + fails.length + ' 项：\n  - ' + fails.join('\n  - ')))

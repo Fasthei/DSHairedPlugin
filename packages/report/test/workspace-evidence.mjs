@@ -118,6 +118,9 @@ await test('pure redaction covers headers, labelled values, private keys, URLs a
   equal(rptRedactEvidence('password: an unquoted secret phrase\npublic: yes'), 'password: [REDACTED]\npublic: yes')
   equal(rptRedactEvidence('X-API-Key: header-value'), 'X-API-Key: [REDACTED]')
   equal(rptRedactEvidence('access_token=query-secret&public=yes'), 'access_token=[REDACTED]&public=yes')
+  const fakeNpm = 'npm_' + 'X'.repeat(36)
+  equal(rptRedactEvidence('发包' + fakeNpm), '发包[REDACTED]')
+  equal(rptRedactEvidence('token is ' + fakeNpm), 'token is [REDACTED]')
 })
 
 await test('fingerprint is deterministic, unicode safe and changes with input', () => {

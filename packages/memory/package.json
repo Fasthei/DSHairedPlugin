@@ -1,7 +1,7 @@
 {
   "name": "dsh-redteam-memory",
-  "version": "0.3.0",
-  "description": "DSH 红队记忆插件：给模型一个可检索的 AI 安全知识库（Milvus + 向量模型 + 重排 + S3）",
+  "version": "0.4.0",
+  "description": "DSH 红队记忆：本地知识库、Milvus 向量检索与 MinIO，提供统一红队设置页",
   "license": "MIT",
   "author": "fasthei",
   "repository": {
@@ -47,6 +47,10 @@
       "hostHalf": "src/host.js",
       "clientHalf": "src/client.js"
     }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": "*"

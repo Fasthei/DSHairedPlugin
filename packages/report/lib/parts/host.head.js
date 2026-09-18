@@ -1,8 +1,7 @@
 // 常驻（静态）Host 半边。
 //
-// 主体逻辑与 src/host.js 完全一致（未改一行），差异只在于动态半边的三个符号
-// （harness.defineTool / harness.registerTool / harness.handle）在静态包里不存在，
-// 因此这里提供一个薄垫片 harness：
+// 正式入口调用 workspace-install：旧 src/host.js 作为源码数据交给工作区运行器，
+// 每个工作区独立实例化，避免共享全局报告库。这里提供工具与 HTTP 的薄垫片：
 //
 //   defineTool / registerTool -> @deepseek-ai/dsh-tools 的 defineTool + ctx.tools.register
 //   handle                    -> 收进 handlers 表，供宿主 HTTP 路由转发（见 rpcRoute）
@@ -20,6 +19,7 @@
 // —— 工具会在 apply 时全部注册失败。
 // 所以这里做一次转换，src/ 保持动态形态不变。
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { rptInstallWorkspaceReports } from '../src/workspace-install.js'
 
 // JSON Schema 属性节点 -> ParameterSchemaSpec 属性节点。只带上工具真的用到的键，
 // 不搬运 pattern / format 之类静态编译器不接受的约束。
@@ -70,7 +70,7 @@ function toStaticToolDefinition(definition) {
   return rest
 }
 
-function applyHost(ctx) {
+async function applyHost(ctx) {
   const handlers = Object.create(null)
   const harness = {
     defineTool(definition) { return defineTool(toStaticToolDefinition(definition)) },

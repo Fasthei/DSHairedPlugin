@@ -3,15 +3,17 @@
 // 为什么要生成而不是手写：src/host.js 与 src/client.js 是权威实现，lib/ 只是它们在
 // 【常驻插件包】形态下的包装。手抄两份必然漂移；生成保证「改 src → 跑一次 npm run build:lib」即同步。
 //
-// 两半边的包装差异都集中在垫片里，主体逻辑逐字不动：
-//   host   : harness.defineTool/registerTool/handle  -> defineTool / ctx.tools.register / HTTP 路由
-//   client : host.call（闭包符号）-> fetch 到宿主路由；styles.insert（闭包符号）-> 自插 <style>
+// 正式 Host 由 workspace-install 注册，旧引擎源码作为数据传给每工作区运行器。
+// Client 经过 workspace-client 转换后再以静态 bundle 提供：
+//   host   : harness.defineTool/registerTool/handle -> defineTool / ctx.tools.register / HTTP 路由
+//   client : host.call -> 宿主 HTTP；styles.insert -> stylesheet；统一设置由 memory 提供
 //
 // 用法: node tools/build-lib.mjs [--check]
 //   --check 只比对、不写入，不一致时非零退出（可用于 CI）
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { rptBuildWorkspaceClientSource } from '../src/workspace-client.js'
 
 const root = path.join(import.meta.dirname, '..')
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8')
@@ -74,7 +76,11 @@ if (hostBody.split(DOCX_MARKER).length !== 2) {
 }
 // 顺序很重要：先把渲染模块嵌进去，再跑 fill()。反过来 fill() 会先看到
 // 不属于它的占位符，而渲染模块里若出现 __PKG_NAME__ 之类字样也会被误替换。
-let hostOut = fill(hostHead + hostBody.replace(DOCX_MARKER, docxStripped) + hostTail)
+// Keep the legacy engine as source data for independently scoped closures.
+// The installed main entry runs the workspace manager, never the legacy globals.
+const productionBody = '\n  await rptInstallWorkspaceReports(ctx, harness, { hostSource: '
+  + JSON.stringify(hostBody) + ', docxSource: ' + JSON.stringify(read('src/docx.js')) + ' });\n'
+let hostOut = fill(hostHead + productionBody + hostTail)
 
 // ── Client 半边 ──────────────────────────────────────────────────────────────
 // 垫片注入到主体自己的 applyClient 开头，包装保持极薄（只做作用域与导出）。
@@ -88,6 +94,8 @@ if (clientBody.split(ANCHOR).length !== 2) {
   process.exit(1)
 }
 clientBody = clientBody.replace(ANCHOR, clientShim + '  const slots = ctx.slots\n')
+clientBody = rptBuildWorkspaceClientSource(clientBody)
+clientBody = clientBody.replace('  const slots = ctx.slots;', "  const settingsHub = ctx.get('redteamSettingsUI');\n  if (!settingsHub) throw new Error('请先安装并启用 dsh-redteam-memory >= 0.4.0');\n  const slots = ctx.slots;")
 let clientOut = fill(clientHead + clientBody + clientTail)
 
 
