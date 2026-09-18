@@ -17,6 +17,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 const root = path.join(import.meta.dirname, '..')
 const OUT = path.join(root, 'build', 'gh-packages')
@@ -61,6 +62,35 @@ fs.mkdirSync(OUT, { recursive: true })
 for (const rel of base.files ?? []) copyListed(rel)
 fs.writeFileSync(path.join(OUT, 'package.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8')
 
+// 用副本自己的 package.json 重新生成本地 lib/。
+//
+// 为什么必须重生成：lib/client.js 的 bundle id 就是包名（client-modules 靠它
+// require），lib/host.js 的 RPC 路由也带上包名。直接沿用未作用域的 lib/，
+// 会让 GitHub Packages 上的包在浏览器里以错误 id 注册、并把请求打到错的路由。
+// 本包的 build-lib.mjs 还会 import ../src/workspace-client.js，副本里 src/ 一并复制，
+// 因此在 OUT 内执行即可；这一步同时让 prepack 的 build-lib --check 闸对改名副本成立。
+const build = spawnSync(process.execPath, [path.join(OUT, 'tools', 'build-lib.mjs')], {
+  cwd: OUT,
+  encoding: 'utf8',
+})
+if (build.status !== 0) {
+  console.error('prepare-gh-packages: 在副本里重生成 lib/ 失败')
+  console.error(build.stdout || '')
+  console.error(build.stderr || '')
+  process.exit(1)
+}
+const verify = spawnSync(process.execPath, [path.join(OUT, 'tools', 'build-lib.mjs'), '--check'], {
+  cwd: OUT,
+  encoding: 'utf8',
+})
+if (verify.status !== 0) {
+  console.error('prepare-gh-packages: 副本 lib/ 与 src/ 不同步（prepack 会拦住这次发布）')
+  console.error(verify.stdout || '')
+  console.error(verify.stderr || '')
+  process.exit(1)
+}
+
 console.log(`prepare-gh-packages: ${baseName}@${base.version} -> ${scopedName}`)
 console.log(`prepare-gh-packages: registry = https://npm.pkg.github.com`)
 console.log(`prepare-gh-packages: 输出目录 = ${path.relative(root, OUT)}`)
+console.log(`prepare-gh-packages: 副本内已按 ${scopedName} 重新生成 lib/ 并通过 --check`)

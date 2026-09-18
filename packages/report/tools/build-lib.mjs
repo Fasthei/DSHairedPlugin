@@ -29,12 +29,17 @@ const ROUTE_BASE = '/' + PKG_NAME
 
 const CLIENT_WRAPPER = "\nreturn {\n  name: '" + PLUGIN_NAME + "',\n  inject: ['slots', 'timer'],\n  apply: applyClient\n}\n"
 
+// 剥离时按「结构」匹配，不比对包名：GitHub Packages 的副本会在改名的
+// package.json 下重跑本脚本，而 src/client.js 里的名字仍是未作用域的那个。
+// 比对包名会让改名副本直接失败（实测卡住过 0.4.1 / 0.2.1 的 gh 发布）。
+const CLIENT_WRAPPER_RE = /\nreturn \{\n {2}name: '[^']*',\n {2}inject: \['slots', 'timer'\],\n {2}apply: applyClient\n\}\n$/
+
 function strip(source, wrapper, file) {
-  if (!source.endsWith(wrapper)) {
+  if (!CLIENT_WRAPPER_RE.test(source)) {
     console.error(`build-lib: ${file} 结尾与预期不符，无法剥离动态包装`)
     process.exit(1)
   }
-  return source.slice(0, -wrapper.length)
+  return source.replace(CLIENT_WRAPPER_RE, '')
 }
 
 // 模板里的占位符按包替换（模板因此可跨包复用）

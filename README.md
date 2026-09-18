@@ -144,8 +144,17 @@ npm test
 cd packages/<包名>
 npm pack --pack-destination ../../build   # 产出 build/<包名>-<版本>.tgz
 npm publish                              # npm（未作用域名）
-npm run publish:gh                       # GitHub Packages（脚本按仓库属主生成作用域副本）
+npm run publish:gh                       # 生成本地 GitHub Packages 副本（只生成，不发布）
 ```
+
+**GitHub Packages 走流水线，不手动发**：`.github/workflows/publish-github-packages.yml`
+在推 `gh-packages-*` 标签（或在 Actions 页面手动 Run workflow）时，对四个包各起一个 job ——
+先用各包的 `prepare-gh-packages.mjs` 生成作用域改名副本（副本内会按 `@fasthei/…` 重新生成
+`lib/`，让 client bundle id 与 RPC 路由跟包名一致），再以仓库自带的 `GITHUB_TOKEN`
+（`packages: write`）发布。同一个版本在 GitHub Packages 上不可覆盖，流水线对已存在的版本会跳过，
+因此可以重复运行。
+
+两个 registry 上的包名不同（GitHub Packages 要求作用域等于仓库属主），安装时按需选一个：
 
 `prepack` 会在 `lib/` 与 `src/` 漂移时拒绝打包/发布。发 npm 前顺手扫一次密钥
 （这些包进的是**公开** registry，而包里带着 `src/`、`tools/` 与 README）：

@@ -1,0 +1,78 @@
+# 发布到 GitHub Packages（npm.pkg.github.com）。
+#
+# 为什么要有这条流水线：同一个插件在两个 registry 上必须是两个名字 ——
+# npmjs 用未作用域名（公开、可搜索），GitHub Packages 要求作用域等于仓库属主
+# （@fasthei/…）。两处清单若手抄必然漂移，所以这里复用各包自己的
+# tools/prepare-gh-packages.mjs 生成改名副本；它会在副本内按作用域名重新生成 lib/，
+# 让 client bundle id 与 RPC 路由与包名一致，并通过 prepack 的 --check 闸。
+#
+# 触发方式：
+#   1. 推一个 gh-packages-* 标签（推荐，留痕）；
+#   2. 或在 Actions 页面手动 Run workflow。
+#
+# 权限：GITHUB_TOKEN 自带 packages: write，无需额外 PAT。
+name: Publish to GitHub Packages
+
+on:
+  push:
+    tags:
+      - 'gh-packages-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      # 一个包失败不影响其余包：四个包各自独立发布。
+      fail-fast: false
+      matrix:
+        package:
+          - asset-graph
+          - attack-matrix
+          - memory
+          - report
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@fasthei'
+
+      # 发货前先确认 lib/ 与 src/ 没有漂移，避免把「改了源码忘了构建」的版本推上去。
+      - name: Check build sync
+        working-directory: packages/${{ matrix.package }}
+        run: node tools/build-lib.mjs --check
+
+      - name: Prepare scoped copy
+        working-directory: packages/${{ matrix.package }}
+        run: node tools/prepare-gh-packages.mjs
+
+      # GitHub Packages 的同一个版本不可覆盖：已发布过就跳过，让流水线可重复运行。
+      - name: Check whether this version already exists
+        id: exists
+        working-directory: packages/${{ matrix.package }}/build/gh-packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "包：$NAME@$VERSION"
+          if npm view "$NAME@$VERSION" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "该版本已存在，跳过发布"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: steps.exists.outputs.skip != 'true'
+        working-directory: packages/${{ matrix.package }}/build/gh-packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish
