@@ -271,7 +271,7 @@ ok(calls.indexOf('listKnowledge') >= 0, '调用了 listKnowledge')
 ok(text.indexOf('OWASP LLM01 提示词注入') >= 0, '列表里出现条目标题')
 ok(text.indexOf('间接注入：文档上传链路') >= 0, '列表里出现第二条')
 ok(text.indexOf('owasp,注入') >= 0, '显示标签')
-ok(text.indexOf('导入内置知识包') < 0, '没有「导入内置知识包」按钮或旧提示')
+ok(text.indexOf('导入内置知识包') >= 0, '「导入内置知识包」按钮回到操作栏')
 ok(findAll(tree, n => n.type === 'button' && textOf(n) === '查询').length === 0, '知识库没有查询按钮')
 ok(findAll(tree, n => n.type === 'input' && String(n.props.placeholder || '').includes('按标题')).length === 0, '知识库没有关键词查询输入框')
 ok(text.indexOf('同步索引（2）') >= 0, '有「同步索引」按钮并带上待同步条数')
@@ -285,7 +285,7 @@ ok(text.indexOf('删除选中') >= 0 && text.indexOf('删除向量索引') >= 0,
   await settle(emptyRender)
   const emptyText = textOf(emptyRender.run())
   ok(emptyText.includes('请导入一份 pdf / word / md / txt'), '空库提示指向文件导入')
-  ok(!emptyText.includes('内置知识包'), '空库不再提示 seed 导入')
+  ok(!emptyText.includes('可以「导入内置知识包」'), '空库提示不再让人去点已移除的旧措辞')
   emptyRender.dispose()
   emptyList = false
 }

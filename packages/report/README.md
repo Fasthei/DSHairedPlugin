@@ -1,6 +1,6 @@
 # 红队报告 · DSH 插件
 
-`dsh-redteam-report` **0.2.0**：报告跟随当前工作区，切换工作区后自动采集文件、会话与证据，调用宿主模型生成报告，可编辑并导出 Markdown、HTML 或 Word。
+`dsh-redteam-report` **0.2.1**：报告跟随当前工作区，切换工作区后自动采集文件、会话与证据，调用宿主模型生成报告，可编辑并导出 Markdown、HTML 或 Word。
 
 ## 安装
 
@@ -8,7 +8,7 @@
 
 ```bash
 dsh plugin --profile web add dsh-redteam-memory@0.4.0
-dsh plugin --profile web add dsh-redteam-report@0.2.0
+dsh plugin --profile web add dsh-redteam-report@0.2.1
 # 完成后重启现有 dsh web
 ```
 
@@ -70,7 +70,7 @@ dsh plugin --profile web add dsh-redteam-report@0.2.0
 
 工作区报告库为插件文件系统默认可写位置下的 `.redteam-report-ws-<工作区指纹>.json`，实际路径在面板中显示。工作区库路径固定，不能通过设置指向另一个工作区的报告库。
 
-旧版 `.redteam-report.json` 保留不动。新工作区继承旧库的默认配置，但旧报告没有可信的工作区归属，因此不自动迁移；界面会提示旧报告数量。
+旧版 `.redteam-report.json` 保留不动。新工作区继承旧库的默认配置，但旧报告没有可信的工作区归属，因此不自动迁移，也不会在界面上反复提示。
 
 Word 是自实现的 ZIP/OOXML 输出，不需要 Office 服务。没有内嵌字体、页眉页脚等高级排版，需要时可在 Word 中二次编辑。
 

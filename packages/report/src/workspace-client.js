@@ -80,10 +80,7 @@ export function rptBuildWorkspaceClientSource(input) {
       snap && draft ? setTab_() : el('div',{className:'rtr-dim'},'加载报告设置…'));
     return el('div', { className: 'rtr-root' },`);
   once('      head(),', `      head(),
-      hint('当前工作区：' + (props.workspaceTitle || '') + ' · ' + props.workspacePath),
-      hint('切换工作区自动采集并生成；相同证据复用已有报告，五分钟内不重复自动生成。配置入口：设置 → 红队设置。'),
       activationError ? el('div',{className:'rtr-warn'},activationError) : null,
-      st && st.legacyUnassignedReports ? hint('旧版未归属工作区报告 ' + st.legacyUnassignedReports + ' 份仍保存在旧报告库，未自动迁移。') : null,
       st && st.queued ? hint('等待自动报告任务…') : null,
       st && st.lastError ? el('div',{className:'rtr-warn'},st.lastError) : null,`);
   once("btn('保存设置'", "btn('保存报告设置'");

@@ -376,6 +376,18 @@ function applyClient(ctx) {
       })
     }
 
+    // 内置知识包：16 条 AI 安全知识与进攻技巧。先落本地库（一定成功），
+    // 索引同步失败也不影响内容 —— 配好后点「同步索引」补齐。
+    function doSeed() {
+      call('seed', {}, '导入内置知识包').then(function (r) {
+        if (r && r.ok === true) {
+          const pending = (r.snapshot && r.snapshot.status && r.snapshot.status.pending) || 0
+          setToast('已导入内置知识包 ' + (r.added || 0) + ' 条' + (pending ? '｜待同步 ' + pending + ' 条' : '｜已进索引'))
+          loadList(0)
+        }
+      })
+    }
+
     function doRemove() {
       if (!selected.length) { setError('先勾选要删除的条目'); return }
       call('removeKnowledge', { ids: selected }, '删除 ' + selected.length + ' 条').then(function (r) {
@@ -458,12 +470,13 @@ function applyClient(ctx) {
 
     function kbTab() {
       return el('div', { className: 'rtm-body' },
-        // 知识库只保留同步入口；查询在独立检索页，导入走文件入口。
+        // 知识库只保留两个入口：同步索引与内置知识包；查询在独立检索页，导入走文件入口。
         el('div', { className: 'rtm-tools' },
           btn('同步索引' + (st && st.pending ? '（' + st.pending + '）' : ''), {
             disabled: !!busy || !(st && st.pending > 0),
             title: st && st.pending > 0 ? '把本地还没进索引的 ' + st.pending + ' 条同步到 Milvus' : '本地条目都已进索引',
-          }, function () { doSyncIndex(false) })),
+          }, function () { doSyncIndex(false) }),
+          btn('导入内置知识包', { disabled: !!busy, title: '16 条 AI 安全知识与进攻技巧；先落本地库，不依赖向量模型' }, doSeed)),
 
         // 导入：只有一条路、四种格式
         card('导入文件', snap.importLabel || 'pdf / word(.docx) / md / txt', [

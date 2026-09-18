@@ -1,6 +1,6 @@
 # 工作区自动报告
 
-从 `dsh-redteam-report 0.2.0` 起，此功能已接入正式包的 `lib/host.js` 和 `lib/client.js`。旧报告引擎及 UI 模板保留用于每工作区隔离和回归测试，不再直接作为发布入口。此前的会话内动态加载仍只在进程内有效；正式安装后请重启 Harness，由 profile 自动挂载。
+从 `dsh-redteam-report 0.2.1` 起，此功能已接入正式包的 `lib/host.js` 和 `lib/client.js`。旧报告引擎及 UI 模板保留用于每工作区隔离和回归测试，不再直接作为发布入口。此前的会话内动态加载仍只在进程内有效；正式安装后请重启 Harness，由 profile 自动挂载。
 
 ## 行为
 

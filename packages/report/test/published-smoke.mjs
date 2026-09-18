@@ -163,7 +163,7 @@ try {
   const Panel=slots.get('main:redteam-report').Component
   const panel=renderer(Panel,{});renderers.push(panel);panel.run();await flush();await fireTimers(400)
   let tree=panel.run()
-  check(textOf(tree).includes('Workspace A'),'ScopedPanel -> Panel renders actual current workspace A')
+  check(requests.some(r=>r.method==='snapshot'&&r.args.workspaceId==='A'),'mounted ScopedPanel -> Panel scopes its RPC to the actual current workspace A')
   check(documentValue(tree).includes('Evidence for A.'),'recursive React renderer reaches the report document textarea')
   check(!findAll(tree,n=>n.type==='button'&&/rtr-tab/.test(n.props.className||'')).some(n=>textOf(n)==='设置'),'published report panel no longer has legacy settings tab')
   const settings=renderer(sharedSettings,{});renderers.push(settings);settings.run();await flush()
@@ -175,7 +175,7 @@ try {
   // Switch while retaining the permanent observer: A child must be unmounted,
   // and B must never show A's report even before the next model response.
   selectedSession='B-session';observation.run();await flush()
-  check(textOf(panel.tree).includes('Workspace B'),'switch rerenders ScopedPanel for B')
+  check(requests.some(r=>r.method==='snapshot'&&r.args.workspaceId==='B'),'switch rescopes the mounted panel RPC to B')
   check(!documentValue(panel.tree).includes('Evidence for A.'),'workspace key change does not retain the old document')
   check(textOf(settings.tree).includes('报告设置 · Workspace B'),'unified settings follow the same workspace switch')
   await fireTimers(1200)
