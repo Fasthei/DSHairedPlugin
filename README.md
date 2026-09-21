@@ -33,12 +33,6 @@
 | [记忆](packages/memory/) | `dsh-redteam-memory` | `0.4.2` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」；配置在「设置 → 红队设置」，导入只认 pdf / word / md / txt） | ✅ 已发布 |
 | [报告](packages/report/) | `dsh-redteam-report` | `0.2.3` | 报告随工作区隔离，切换时自动采集文件与会话并 AI 撰写；可编辑预览、导出 Word、导入记忆 | ✅ 已发布 |
 
-> 「仓库版本」是 `packages/*/package.json` 里的版本，正常情况下与 registry 上的 `latest` 一致
-> （四个包都已发布到 npm；发版流程见下方「发布」）。
->
-> **记忆与报告是一对**：报告的统一设置页由记忆插件提供（`redteamSettingsUI` 服务），
-> 因此报告要求 `dsh-redteam-memory >= 0.4.1`，两个都要装。
-
 ---
 
 ## 安装
