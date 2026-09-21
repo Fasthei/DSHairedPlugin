@@ -261,6 +261,21 @@ ok(text.indexOf('连接') < 0, '「连接」tab 已经不在数据面板里')
 ok(text.indexOf('设置 → 红队设置') >= 0, '面板上给出配置所在的路径')
 ok(text.indexOf('刷新') >= 0, '顶栏有刷新按钮')
 
+console.log('\n[2.5] 主题跟随：面板根元素带 color-scheme')
+{
+  // 回归线：记忆面板里有 4 个原生 checkbox —— 根元素不设 color-scheme 时，
+  // 黑夜模式下它们就是 4 个纯白小方块（用户报的就是这个现象）。
+  const findRoot = (t) => findAll(t, (n) => n.props && n.props.className === 'rtm-root')[0]
+  const r0 = findRoot(tree)
+  ok(!!r0, '渲染出面板根元素')
+  ok(!!r0 && !!r0.props.style && r0.props.style.colorScheme === 'dark', '默认跟随 dark：' + JSON.stringify(r0 && r0.props.style))
+  provided.set('theme', { getTheme: () => ({ active: { colorScheme: 'light' } }) })
+  const r1 = findRoot(render.run())
+  ok(!!r1 && !!r1.props.style && r1.props.style.colorScheme === 'light', '主题切到浅色时跟随 light：' + JSON.stringify(r1 && r1.props.style))
+  provided.delete('theme')
+  render.run()
+}
+
 console.log('\n[3] RPC 打的是本插件自己的路由（钉住 url，不是只记 method）')
 ok(urls.length > 0 && urls.every((u) => u === '/dsh-redteam-memory/rpc'),
   'RPC 路径正确（实际：' + JSON.stringify(Array.from(new Set(urls))) + '）')

@@ -84,6 +84,21 @@ function applyClient(ctx) {
 
   const slots = ctx.slots
 
+  // 主题跟随：面板与设置页里的原生控件（checkbox、select 的弹出层、数字输入的微调箭头、
+  // 滚动条）走的是浏览器浅色默认渲染 —— 黑夜模式下会变成刺眼的纯白块。
+  // color-scheme 必须显式挂到根元素上，宿主不会替插件设（资产图谱半边一直这么做）。
+  function readColorScheme() {
+    try {
+      const t = ctx.get('theme')
+      if (t && typeof t.getTheme === 'function') {
+        const snap = t.getTheme()
+        const cs = snap && snap.active && snap.active.colorScheme
+        if (cs === 'light' || cs === 'dark') return cs
+      }
+    } catch (e) {}
+    return 'dark'
+  }
+
   // Shared settings contribution point. Values are React components, never JSON/RPC data.
   let reportComponent = null
   let settingsClosed = false
@@ -614,7 +629,7 @@ function applyClient(ctx) {
         })))
     }
 
-    return el('div', { className: 'rtm-root' },
+    return el('div', { className: 'rtm-root', style: { colorScheme: readColorScheme() } },
       head(),
       error ? el('div', { className: 'rtm-errbar' }, el('span', null, error), el('button', { className: 'rtm-x', onClick: function () { setError(null) } }, '×')) : null,
       toast ? el('div', { className: 'rtm-ok' }, toast) : null,
@@ -638,7 +653,7 @@ function applyClient(ctx) {
     React.useEffect(function () {
       return settingsHub.subscribe(function () { setReport(function () { return settingsHub.current() }) })
     }, [])
-    return el('div', { className: 'rtm-body' },
+    return el('div', { className: 'rtm-body', style: { colorScheme: readColorScheme() } },
       el(SettingsPage),
       Report ? el(Report) : el('div', { className: 'rtm-set' }, '报告设置尚未加载；启用红队报告插件后将在此显示。'))
   }

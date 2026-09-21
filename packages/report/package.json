@@ -1,6 +1,6 @@
 {
   "name": "dsh-redteam-report",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "DSH 红队报告：按工作区隔离，切换时自动采集文件与会话并生成可导出的报告",
   "license": "MIT",
   "author": "fasthei",

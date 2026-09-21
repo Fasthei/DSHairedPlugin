@@ -234,9 +234,13 @@ const slots = {
     return () => {}
   },
 }
+// 主题服务：用来断言面板根元素真的跟随主题（黑夜/白天），而不是放任原生控件
+// 走浏览器的浅色默认渲染（那样黑夜模式下会出现纯白块）。
+let themeScheme = 'dark'
+const themeService = { getTheme: () => ({ active: { colorScheme: themeScheme } }) }
 const ctx = {
   slots,
-  get: (n) => (n === 'slots' ? slots : undefined),
+  get: (n) => (n === 'slots' ? slots : (n === 'theme' ? themeService : undefined)),
   effect: (fn) => { const d = fn(); return typeof d === 'function' ? d : () => {} },
   interval: () => () => {},
   timeout: () => () => {},
@@ -266,6 +270,21 @@ ok(text.indexOf('ATLAS') >= 0, '框架标签页出现 ATLAS')
 ok(text.indexOf('Prompt Injection') >= 0, '技术卡片出现 Prompt Injection')
 ok(text.indexOf('未覆盖') >= 0, '未命中的卡片显示「未覆盖」')
 ok(text.indexOf('还没有记录') >= 0, '未扫描时时间线提示为空')
+
+console.log('\n[3.2] 主题跟随：面板根元素带 color-scheme')
+{
+  // 回归线：根元素不设 color-scheme 时，黑夜模式下原生控件（checkbox、select 的弹出层、
+  // 数字输入的微调箭头、滚动条）走浏览器浅色默认渲染 —— 面板里会出现刺眼的纯白块。
+  const findRoot = (t) => findAll(t, (n) => n.props && n.props.className === 'rtm-root')[0]
+  const r0 = findRoot(tree)
+  ok(!!r0, '渲染出面板根元素')
+  ok(!!r0 && !!r0.props.style && r0.props.style.colorScheme === 'dark', '默认跟随 dark：' + JSON.stringify(r0 && r0.props.style))
+  themeScheme = 'light'
+  const r1 = findRoot(render.run())
+  ok(!!r1 && !!r1.props.style && r1.props.style.colorScheme === 'light', '主题切到浅色时跟随 light：' + JSON.stringify(r1 && r1.props.style))
+  themeScheme = 'dark'
+  render.run()
+}
 
 console.log('\n[3.5] 按 tactic 分组：有阶段的框架分节显示')
 {

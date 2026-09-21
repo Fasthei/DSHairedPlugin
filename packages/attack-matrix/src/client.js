@@ -17,6 +17,21 @@
 function applyClient(ctx) {
   const slots = ctx.slots
 
+  // 主题跟随：面板里的原生控件（checkbox、select 的弹出层、数字输入的微调箭头、滚动条）
+  // 走的是浏览器的浅色默认渲染 —— 黑夜模式下会变成刺眼的纯白块。
+  // color-scheme 必须显式挂到面板根元素上，宿主不会替插件设（资产图谱半边一直这么做）。
+  function readColorScheme() {
+    try {
+      const t = ctx.get('theme')
+      if (t && typeof t.getTheme === 'function') {
+        const snap = t.getTheme()
+        const cs = snap && snap.active && snap.active.colorScheme
+        if (cs === 'light' || cs === 'dark') return cs
+      }
+    } catch (e) {}
+    return 'dark'
+  }
+
   const PANEL_KEY = 'redteam-attack-matrix'
 
   function el(tag, props) {
@@ -359,7 +374,7 @@ function applyClient(ctx) {
       return out
     }
 
-    return el('div', { className: 'rtm-root' },
+    return el('div', { className: 'rtm-root', style: { colorScheme: readColorScheme() } },
       el('div', { className: 'rtm-bar' },
         el('span', { className: 'rtm-brand' }, '攻击矩阵'),
         el('select', {
@@ -578,6 +593,8 @@ function applyClient(ctx) {
       '.rtm-bar{display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap}',
       '.rtm-brand{font-weight:600;font-size:14px;margin-right:2px}',
       '.rtm-select{background:transparent;color:inherit;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.28));border-radius:6px;padding:3px 6px;font-size:12px;max-width:320px}',
+      // 下拉弹出层在部分浏览器里不跟随 color-scheme，显式给一份主题色。
+      '.rtm-select option{background-color:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary)}',
       '.rtm-btn{background:transparent;color:inherit;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer}',
       '.rtm-btn:hover:not(:disabled){border-color:var(--dsw-alias-brand-primary,#4c8dff)}',
       '.rtm-btn:disabled{opacity:.5;cursor:default}',

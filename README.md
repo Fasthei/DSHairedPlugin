@@ -29,9 +29,9 @@
 | 插件 | 包名 | 仓库版本 | 用途 | 状态 |
 |---|---|---|---|---|
 | [资产图谱](packages/asset-graph/) | `dsh-redteam-asset-graph` | `7.9.7` | 目标资产自动收集、关联、可视化，模型参与研判 | ✅ 已发布 |
-| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.2.0` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
-| [记忆](packages/memory/) | `dsh-redteam-memory` | `0.4.1` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」；配置在「设置 → 红队设置」，导入只认 pdf / word / md / txt） | ✅ 已发布 |
-| [报告](packages/report/) | `dsh-redteam-report` | `0.2.2` | 报告随工作区隔离，切换时自动采集文件与会话并 AI 撰写；可编辑预览、导出 Word、导入记忆 | ✅ 已发布 |
+| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.2.1` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
+| [记忆](packages/memory/) | `dsh-redteam-memory` | `0.4.2` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」；配置在「设置 → 红队设置」，导入只认 pdf / word / md / txt） | ✅ 已发布 |
+| [报告](packages/report/) | `dsh-redteam-report` | `0.2.3` | 报告随工作区隔离，切换时自动采集文件与会话并 AI 撰写；可编辑预览、导出 Word、导入记忆 | ✅ 已发布 |
 
 > 「仓库版本」是 `packages/*/package.json` 里的版本，正常情况下与 registry 上的 `latest` 一致
 > （四个包都已发布到 npm；发版流程见下方「发布」）。
@@ -58,8 +58,8 @@ dsh plugin --profile web add dsh-redteam-asset-graph
 记忆与报告要一起装，并且**记忆在前**（报告依赖它提供的统一设置页）：
 
 ```bash
-dsh plugin --profile web add dsh-redteam-memory@0.4.1
-dsh plugin --profile web add dsh-redteam-report@0.2.2
+dsh plugin --profile web add dsh-redteam-memory@0.4.2
+dsh plugin --profile web add dsh-redteam-report@0.2.3
 # 重启 dsh web
 ```
 
@@ -78,7 +78,7 @@ dsh plugin --profile web add dsh-redteam-report@0.2.2
     │   ├── cordis.patch.yml     bundle patch
     │   ├── README.md            使用者文档
     │   └── DEVELOPMENT.md       该插件的开发笔记
-    ├── attack-matrix/           攻击矩阵（1.2.0）—— 结构与上同
+    ├── attack-matrix/           攻击矩阵（1.2.1）—— 结构与上同
     ├── memory/                  红队记忆（本地库 + Milvus 索引 + 对话捕获；提供统一红队设置页）
     └── report/                  红队报告（按工作区隔离 + 自动生成 + 导出 Word + 导入记忆，含自实现 docx 写出）
 ```
@@ -108,8 +108,8 @@ for p in asset-graph attack-matrix memory report; do
 done
 npm test
 # 现在能看到真实项数：
-#   资产图谱 15 · 攻击矩阵 host 101 / client 87 · 记忆 host 176 / client 120
-#   报告 docx 122 / host 112（legacy） / client 75（legacy）
+#   资产图谱 15 · 攻击矩阵 host 101 / client 90 · 记忆 host 176 / client 123
+#   报告 docx 122 / host 112（legacy） / client 78（legacy）
 #   报告新增：工作区证据 168 · 工作区调度 44 · 正式产物门禁 67
 ```
 
@@ -165,6 +165,15 @@ tar -xzOf build/<包名>-<版本>.tgz \
 ```
 
 ## 变更记录
+
+### 攻击矩阵 `1.2.1` · 记忆 `0.4.2` · 报告 `0.2.3`（2026-09-21）
+
+- **黑夜模式下面板里出现纯白块**：面板与设置页的根元素没有设 `color-scheme`，于是里面的
+  **原生控件**（记忆页的 4 个 checkbox、各页的 `select` 弹出层、数字输入的微调箭头、滚动条）
+  按浏览器的浅色默认渲染 —— 在黑主题里就是一块块纯白。四个插件里只有资产图谱做了这件事
+  （`ctx.get('theme')` → `getTheme().active.colorScheme`），现在三个客户端都跟上；攻击矩阵的
+  下拉弹出层另补了主题色（部分浏览器不跟随 `color-scheme`）。
+  回归线：三个客户端测试各自新增「默认跟随 dark / 切浅色跟随 light」两条断言。
 
 ### 攻击矩阵 `1.2.0` · 报告 `0.2.2`（2026-09-21）
 

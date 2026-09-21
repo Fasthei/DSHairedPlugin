@@ -143,7 +143,7 @@ for p in asset-graph attack-matrix; do
   mkdir -p "packages/$p/node_modules/@deepseek-ai"
   ln -sfn "$DSH_NM/dsh-tools" "packages/$p/node_modules/@deepseek-ai/dsh-tools"
 done
-npm test        # 资产图谱 15 + 攻击矩阵 host 101 / client 87
+npm test        # 资产图谱 15 + 攻击矩阵 host 101 / client 90
 ```
 
 `node_modules/` 在 `.gitignore` 里，软链不进仓库。客户端侧的冒烟测试不需要这个依赖，

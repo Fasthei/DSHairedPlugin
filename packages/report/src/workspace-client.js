@@ -58,7 +58,7 @@ export function rptBuildWorkspaceClientSource(input) {
   }
   function ScopedPanel(props) {
     const current = useWorkspace();
-    if (!current.id) return el('div', {className:'rtr-root'}, props && props.settingsOnly ? '报告设置：请先选择工作区' : '请先选择工作区；报告不会回退到其他工作区。');
+    if (!current.id) return el('div', {className:'rtr-root', style:{colorScheme:reportColorScheme()}}, props && props.settingsOnly ? '报告设置：请先选择工作区' : '请先选择工作区；报告不会回退到其他工作区。');
     return el(Panel, {key:current.id, workspaceId:current.id, workspacePath:current.path, workspaceTitle:current.title, settingsOnly:!!(props && props.settingsOnly)});
   }
   ctx.effect(() => slots.inject('shell.overlay', () => slots.register({name:'shell.overlay',id:'redteam-report-workspace-observer',order:0}, WorkspaceObserver)));
@@ -72,13 +72,13 @@ export function rptBuildWorkspaceClientSource(input) {
   once("      if (typeof ctx.interval !== 'function') return undefined", "      if (settingsOnly || typeof ctx.interval !== 'function') return undefined");
   once('        if (!liveRef.current.generating) return', '        // Always poll this scoped panel: automatic jobs can start while it is open.');
   once("      snap && tab === 'set' ? setTab_() : null,", '');
-  once("    return el('div', { className: 'rtr-root' },", `    if (settingsOnly) return el('section', {className:'rtr-root', style:{borderTop:'1px solid var(--dsw-alias-border-l1)'}},
+  once("    return el('div', { className: 'rtr-root', style: { colorScheme: reportColorScheme() } },", `    if (settingsOnly) return el('section', {className:'rtr-root', style:{borderTop:'1px solid var(--dsw-alias-border-l1)', colorScheme:reportColorScheme()}},
       el('h2',{className:'rtr-brand'},'报告设置 · ' + (props.workspaceTitle || props.workspacePath)),
       hint('以下配置仅用于当前工作区；报告库按工作区隔离。'),
       error ? el('div',{className:'rtr-errbar'},error) : null,
       toast ? el('div',{className:'rtr-ok'},toast) : null,
       snap && draft ? setTab_() : el('div',{className:'rtr-dim'},'加载报告设置…'));
-    return el('div', { className: 'rtr-root' },`);
+    return el('div', { className: 'rtr-root', style: { colorScheme: reportColorScheme() } },`);
   once('      head(),', `      head(),
       activationError ? el('div',{className:'rtr-warn'},activationError) : null,
       st && st.queued ? hint('等待自动报告任务…') : null,

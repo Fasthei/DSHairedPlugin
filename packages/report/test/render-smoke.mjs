@@ -214,9 +214,13 @@ const slots = {
     return () => {}
   },
 }
+// 主题服务：用来断言面板根元素真的跟随主题（黑夜/白天），而不是放任原生控件
+// 走浏览器的浅色默认渲染（那样黑夜模式下会出现纯白块）。
+let themeScheme = 'dark'
+const themeService = { getTheme: () => ({ active: { colorScheme: themeScheme } }) }
 const ctx = {
   slots,
-  get: (n) => (n === 'slots' ? slots : (n === 'timer' ? { timeout: (fn) => { timerQueue.push(fn); return () => {} } } : undefined)),
+  get: (n) => (n === 'slots' ? slots : (n === 'timer' ? { timeout: (fn) => { timerQueue.push(fn); return () => {} } } : (n === 'theme' ? themeService : undefined))),
   effect: (fn) => { const d = fn(); return typeof d === 'function' ? d : () => {} },
   interval: () => () => {},
 }
@@ -252,6 +256,21 @@ ok(text.indexOf('红队报告') >= 0, '标题出现')
 ok(text.indexOf('报告 1 份') >= 0, '顶栏显示报告份数')
 ok(text.indexOf('证据：会话 2 · 矩阵 2/1 · 记忆 1') >= 0, '顶栏显示证据规模（会话/矩阵/记忆）')
 ok(text.indexOf('报告') >= 0 && text.indexOf('证据') >= 0 && text.indexOf('设置') >= 0 && text.indexOf('日志') >= 0, '四个标签页都在')
+
+console.log('\n[2.5] 主题跟随：面板根元素带 color-scheme')
+{
+  // 回归线：根元素不设 color-scheme 时，黑夜模式下原生控件（数字输入的微调箭头、
+  // select 的弹出层、滚动条）走浏览器浅色默认渲染 —— 面板里会出现刺眼的纯白块。
+  const findRoot = (t) => findAll(t, (n) => n.props && n.props.className === 'rtr-root')[0]
+  const r0 = findRoot(tree)
+  ok(!!r0, '渲染出面板根元素')
+  ok(!!r0 && !!r0.props.style && r0.props.style.colorScheme === 'dark', '默认跟随 dark：' + JSON.stringify(r0 && r0.props.style))
+  themeScheme = 'light'
+  const r1 = findRoot(render.run())
+  ok(!!r1 && !!r1.props.style && r1.props.style.colorScheme === 'light', '主题切到浅色时跟随 light：' + JSON.stringify(r1 && r1.props.style))
+  themeScheme = 'dark'
+  render.run()
+}
 
 console.log('\n[3] RPC 打的是本插件自己的路由（钉住 url，不是只记 method）')
 ok(urls.length > 0 && urls.every((u) => u === '/dsh-redteam-report/rpc'),

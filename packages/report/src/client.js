@@ -25,6 +25,22 @@
 function applyClient(ctx) {
   const slots = ctx.slots
 
+  // 主题跟随：面板里的原生控件（checkbox、数字输入的微调箭头、select 的弹出层、滚动条）
+  // 走的是浏览器浅色默认渲染 —— 黑夜模式下会变成刺眼的纯白块。
+  // color-scheme 必须显式挂到面板根元素上，宿主不会替插件设（资产图谱半边一直这么做）。
+  // 注意：这个函数名被 workspace-client.js 的源码补丁一起引用，改名要同步改那边。
+  function reportColorScheme() {
+    try {
+      const t = ctx.get('theme')
+      if (t && typeof t.getTheme === 'function') {
+        const snap = t.getTheme()
+        const cs = snap && snap.active && snap.active.colorScheme
+        if (cs === 'light' || cs === 'dark') return cs
+      }
+    } catch (e) {}
+    return 'dark'
+  }
+
   const PANEL_KEY = 'redteam-report'
   const TABS = [['doc', '报告'], ['evi', '证据'], ['set', '设置'], ['log', '日志']]
   const PREVIEW_DEBOUNCE_MS = 400
@@ -449,7 +465,7 @@ function applyClient(ctx) {
         })))
     }
 
-    return el('div', { className: 'rtr-root' },
+    return el('div', { className: 'rtr-root', style: { colorScheme: reportColorScheme() } },
       head(),
       error ? el('div', { className: 'rtr-errbar' }, el('span', null, error), el('button', { className: 'rtr-x', onClick: function () { setError(null) } }, '×')) : null,
       toast ? el('div', { className: 'rtr-ok' }, toast) : null,

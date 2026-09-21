@@ -136,12 +136,28 @@ function applyClient(ctx) {
   }
   function ScopedPanel(props) {
     const current = useWorkspace();
-    if (!current.id) return el('div', {className:'rtr-root'}, props && props.settingsOnly ? '报告设置：请先选择工作区' : '请先选择工作区；报告不会回退到其他工作区。');
+    if (!current.id) return el('div', {className:'rtr-root', style:{colorScheme:reportColorScheme()}}, props && props.settingsOnly ? '报告设置：请先选择工作区' : '请先选择工作区；报告不会回退到其他工作区。');
     return el(Panel, {key:current.id, workspaceId:current.id, workspacePath:current.path, workspaceTitle:current.title, settingsOnly:!!(props && props.settingsOnly)});
   }
   ctx.effect(() => slots.inject('shell.overlay', () => slots.register({name:'shell.overlay',id:'redteam-report-workspace-observer',order:0}, WorkspaceObserver)));
   ctx.effect(() => settingsHub.register(function ReportSettings() { return el(ScopedPanel, {settingsOnly:true}); }));
   ctx.effect(() => () => { subscribers.clear(); reportHost.call('activate', {workspaceId:'',viewId:viewId,sequence:++switchSequence}).catch(() => {}); });
+
+  // 主题跟随：面板里的原生控件（checkbox、数字输入的微调箭头、select 的弹出层、滚动条）
+  // 走的是浏览器浅色默认渲染 —— 黑夜模式下会变成刺眼的纯白块。
+  // color-scheme 必须显式挂到面板根元素上，宿主不会替插件设（资产图谱半边一直这么做）。
+  // 注意：这个函数名被 workspace-client.js 的源码补丁一起引用，改名要同步改那边。
+  function reportColorScheme() {
+    try {
+      const t = ctx.get('theme')
+      if (t && typeof t.getTheme === 'function') {
+        const snap = t.getTheme()
+        const cs = snap && snap.active && snap.active.colorScheme
+        if (cs === 'light' || cs === 'dark') return cs
+      }
+    } catch (e) {}
+    return 'dark'
+  }
 
   const PANEL_KEY = 'redteam-report'
   const TABS = [['doc', '报告'], ['evi', '证据'], ['log', '日志']]
@@ -583,13 +599,13 @@ function applyClient(ctx) {
         })))
     }
 
-    if (settingsOnly) return el('section', {className:'rtr-root', style:{borderTop:'1px solid var(--dsw-alias-border-l1)'}},
+    if (settingsOnly) return el('section', {className:'rtr-root', style:{borderTop:'1px solid var(--dsw-alias-border-l1)', colorScheme:reportColorScheme()}},
       el('h2',{className:'rtr-brand'},'报告设置 · ' + (props.workspaceTitle || props.workspacePath)),
       hint('以下配置仅用于当前工作区；报告库按工作区隔离。'),
       error ? el('div',{className:'rtr-errbar'},error) : null,
       toast ? el('div',{className:'rtr-ok'},toast) : null,
       snap && draft ? setTab_() : el('div',{className:'rtr-dim'},'加载报告设置…'));
-    return el('div', { className: 'rtr-root' },
+    return el('div', { className: 'rtr-root', style: { colorScheme: reportColorScheme() } },
       head(),
       activationError ? el('div',{className:'rtr-warn'},activationError) : null,
       st && st.queued ? hint('等待自动报告任务…') : null,
