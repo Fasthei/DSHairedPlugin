@@ -29,12 +29,12 @@
 | 插件 | 包名 | 仓库版本 | 用途 | 状态 |
 |---|---|---|---|---|
 | [资产图谱](packages/asset-graph/) | `dsh-redteam-asset-graph` | `7.9.7` | 目标资产自动收集、关联、可视化，模型参与研判 | ✅ 已发布 |
-| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.1.1` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
+| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.2.0` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
 | [记忆](packages/memory/) | `dsh-redteam-memory` | `0.4.1` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」；配置在「设置 → 红队设置」，导入只认 pdf / word / md / txt） | ✅ 已发布 |
-| [报告](packages/report/) | `dsh-redteam-report` | `0.2.1` | 报告随工作区隔离，切换时自动采集文件与会话并 AI 撰写；可编辑预览、导出 Word、导入记忆 | ✅ 已发布 |
+| [报告](packages/report/) | `dsh-redteam-report` | `0.2.2` | 报告随工作区隔离，切换时自动采集文件与会话并 AI 撰写；可编辑预览、导出 Word、导入记忆 | ✅ 已发布 |
 
-> 「仓库版本」是 `packages/*/package.json` 里的版本，可能领先 registry 上已发布的那个
-> （攻击矩阵仓库是 `1.1.1`、npm 上的 `latest` 是 `1.1.0`）。四个包现在都已发布到 npm。
+> 「仓库版本」是 `packages/*/package.json` 里的版本，正常情况下与 registry 上的 `latest` 一致
+> （四个包都已发布到 npm；发版流程见下方「发布」）。
 >
 > **记忆与报告是一对**：报告的统一设置页由记忆插件提供（`redteamSettingsUI` 服务），
 > 因此报告要求 `dsh-redteam-memory >= 0.4.1`，两个都要装。
@@ -59,7 +59,7 @@ dsh plugin --profile web add dsh-redteam-asset-graph
 
 ```bash
 dsh plugin --profile web add dsh-redteam-memory@0.4.1
-dsh plugin --profile web add dsh-redteam-report@0.2.1
+dsh plugin --profile web add dsh-redteam-report@0.2.2
 # 重启 dsh web
 ```
 
@@ -78,7 +78,7 @@ dsh plugin --profile web add dsh-redteam-report@0.2.1
     │   ├── cordis.patch.yml     bundle patch
     │   ├── README.md            使用者文档
     │   └── DEVELOPMENT.md       该插件的开发笔记
-    ├── attack-matrix/           攻击矩阵（npm 1.1.0，仓库 1.1.1）—— 结构与上同
+    ├── attack-matrix/           攻击矩阵（1.2.0）—— 结构与上同
     ├── memory/                  红队记忆（本地库 + Milvus 索引 + 对话捕获；提供统一红队设置页）
     └── report/                  红队报告（按工作区隔离 + 自动生成 + 导出 Word + 导入记忆，含自实现 docx 写出）
 ```
@@ -108,8 +108,8 @@ for p in asset-graph attack-matrix memory report; do
 done
 npm test
 # 现在能看到真实项数：
-#   资产图谱 15 · 攻击矩阵 host 97 / client 87 · 记忆 host 176 / client 120
-#   报告 docx 122 / host 102（legacy） / client 75（legacy）
+#   资产图谱 15 · 攻击矩阵 host 101 / client 87 · 记忆 host 176 / client 120
+#   报告 docx 122 / host 112（legacy） / client 75（legacy）
 #   报告新增：工作区证据 168 · 工作区调度 44 · 正式产物门禁 67
 ```
 
@@ -163,6 +163,28 @@ npm run publish:gh                       # 生成本地 GitHub Packages 副本�
 tar -xzOf build/<包名>-<版本>.tgz \
   | grep -aoE "jina_[A-Za-z0-9_-]{10,}|npm_[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{10,}" ; echo "(无输出 = 干净)"
 ```
+
+## 变更记录
+
+### 攻击矩阵 `1.2.0` · 报告 `0.2.2`（2026-09-21）
+
+修两个实测问题：
+
+- **报告生成不出来**：报告由**推理模型**撰写，而 `maxTokens` 默认 8000 是**推理与正文共用的预算**——
+  推理把预算吃满时正文一个字都写不出来，报错却只说「模型没有返回任何正文（finish = max-tokens）」，
+  从面板上完全看不出该怎么办（实测 `usage.outputTokens` 恰好等于 8000）。现在默认提到 32000；
+  旧库按存储版本自动迁移，且**只迁移恰好停在旧默认 8000 的值**，用户自己设过的值不动；
+  这种情况的报错会点明「推理占满了 N token 的预算（其中推理 M）」，并给出下一步该调到多少；
+  正文被截断时另记一条 warn 与 `meta.truncated`。
+- **自动研判串台与自反馈**：研判请求正文里带着「命中词：…」清单，模型判定时必然复述这些词，
+  下一轮扫描又把**模型自己的回复**当成新命中——同一批关键词被反复放大，队列永远排不空。
+  现在按「会话 + 投递时刻」设闸：收到过研判请求的会话，那一刻之后的模型回复不再进矩阵。
+  派发同时收严到**本工作区的成员会话**（删掉了「只有一个根会话就用它」与跨工作区复用 agent
+  两个兜底，认不出收件人就整批不派发），并且**所属会话已不在工作区的孤儿命中不再自动派发**
+  （仍留在面板上可人工判定）。
+
+两条都有回归测试：攻击矩阵主机侧新增自反馈闸门用例（含「未参与研判的会话照常入矩阵」对照组），
+报告新增「推理吃满预算」报错路径与旧库迁移用例。
 
 ## 开发
 

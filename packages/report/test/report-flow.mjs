@@ -1,4 +1,4 @@
-// 红队报告 · legacy Host 引擎回归（102 项，不代表发布入口）
+// 红队报告 · legacy Host 引擎回归（112 项，不代表发布入口）
 // 常驻发布入口由 published-smoke.mjs 直接测试 lib/host.js。
 //
 // 覆盖范围：
@@ -142,6 +142,9 @@ const memoryService = {
 const memoryAdded = []
 
 const llmCalls = []
+// 推理模型的真实失败形态：reasoning-delta 把 maxTokens 预算吃满，正文一个 text-delta 都没有。
+// 生产上表现成「报告没生成」，错误却是「模型没有返回任何正文」—— 这个模式用来锁住那条报错路径。
+const streamMode = { mode: 'normal' }
 const REPORT_TEXT = [
   '# 红队测试报告：推理服务未授权（2026-09-16）',
   '',
@@ -161,11 +164,17 @@ const llm = {
   listProviders: () => [{ id: 'deepseek', name: 'DeepSeek' }],
   stream: function (opts) {
     llmCalls.push(opts)
-    const text = REPORT_TEXT
     const chunks = []
-    for (let i = 0; i < text.length; i += 40) chunks.push({ type: 'text-delta', index: 0, text: text.slice(i, i + 40) })
-    chunks.push({ type: 'usage', usage: { inputTokens: 1234, outputTokens: 567 } })
-    chunks.push({ type: 'finish', reason: { kind: 'stop' } })
+    if (streamMode.mode === 'max-tokens') {
+      chunks.push({ type: 'reasoning-delta', index: 0, text: '先想想要不要按这个大纲写……（推理把预算吃满）' })
+      chunks.push({ type: 'usage', usage: { inputTokens: 9547, outputTokens: 32000, reasoningTokens: 32000 } })
+      chunks.push({ type: 'finish', reason: { kind: 'max-tokens' } })
+    } else {
+      const text = REPORT_TEXT
+      for (let i = 0; i < text.length; i += 40) chunks.push({ type: 'text-delta', index: 0, text: text.slice(i, i + 40) })
+      chunks.push({ type: 'usage', usage: { inputTokens: 1234, outputTokens: 567 } })
+      chunks.push({ type: 'finish', reason: { kind: 'stop' } })
+    }
     return {
       [Symbol.asyncIterator]: async function* () {
         for (const c of chunks) yield c
@@ -327,7 +336,7 @@ console.log('\n[5] 生成：后台任务 + 流式写入')
   const prompt = call1.messages[0].content[0].text
   ok(prompt.indexOf('## 1. 概述') >= 0 && prompt.indexOf('## 7. 清理与合规') >= 0, '提示词带完整大纲')
   ok(prompt.indexOf('## 二、攻击矩阵命中') >= 0, '提示词里带上了 digest')
-  ok(call1.maxTokens === 8000, 'maxTokens 来自设置：' + call1.maxTokens)
+  ok(call1.maxTokens === 32000, 'maxTokens 来自设置：' + call1.maxTokens)
 }
 
 console.log('\n[6] 预览与导出')
@@ -453,6 +462,83 @@ console.log('\n[9] 报告管理：新建 / 切换 / 删除 / 清日志')
   ok(rm.snapshot.reports.length === 1, '删完剩 1 份')
   const lc = await rpc('logClear', null)
   ok(lc.ok === true && lc.snapshot.log.length === 0, '清空日志')
+}
+
+console.log('\n[10] 失败路径：推理吃满预算（finish=max-tokens，正文为空）')
+{
+  const n0 = (await rpc('snapshot', null)).snapshot.reports.length
+  streamMode.mode = 'max-tokens'
+  const g = await rpc('generate', { createNew: true })
+  ok(g.ok === true && g.started === true, 'generate 先返回 started（后台任务照跑）')
+  const done = await waitFor(async () => {
+    const s = await rpc('snapshot', null)
+    return s.snapshot.status.generating === false ? s.snapshot : null
+  }, 4000)
+  ok(!!done, '生成结束（generating=false）')
+  const err = String((done && done.status.lastError) || '')
+  ok(err.indexOf('max-tokens') >= 0, '错误里带上 finish 原因：' + err)
+  ok(err.indexOf('推理占满了') >= 0, '错误点明是推理占满预算，而不是含糊的「没有正文」')
+  ok(err.indexOf('推理 32000 token') >= 0, '错误带出推理实际用掉的 token：' + err)
+  ok(err.indexOf('调到 64000') >= 0, '错误给出下一步的具体数值（当前 32000 -> 64000）')
+  ok(done.reports.length === n0, '一个字都没写出来时不留空壳报告（仍是 ' + n0 + ' 份）')
+  streamMode.mode = 'normal'
+}
+
+console.log('\n[10b] 迁移：旧库的 maxTokens=8000 载入后提升到 32000')
+{
+  // 独立起第二个实例：loadLegacyHost() 每次重新构造模块，于是能拿到一个干净的 store。
+  // 事故形态：老库把 8000 写死在 settings 里，只改代码默认值不够 —— 自动报告会一直失败。
+  const files2 = new Map()
+  files2.set('.redteam-report.json', JSON.stringify({
+    version: 1, updatedAt: 0, settings: { maxTokens: 8000 }, reports: [], currentId: '', log: [], logSeq: 0,
+  }))
+  const fs2 = {
+    async resolve(p) { return { displayPath: p, path: p, key: p } },
+    async stat(t) { return files2.has(t.path) ? { size: String(files2.get(t.path)).length } : null },
+    async readText(t) { return files2.get(t.path) || '' },
+    async writeText(t, c) { files2.set(t.path, String(c)); return { ok: true } },
+    processPath(t) { return '/resolved/' + t.path },
+  }
+  let handler2 = null
+  const ctx2 = {
+    fs: fs2, shell: shell, timer: {}, on: () => () => {}, provide: () => () => {},
+    tools: { register: () => () => {} },
+    webServer: { register: (r) => { if (r && r.handler) handler2 = r.handler; return () => {} } },
+    effect: (fn) => { const d = fn(); return (typeof d === 'function') ? d : () => {} },
+    get: (name) => {
+      if (name === 'fs') return fs2
+      if (name === 'shell') return shell
+      if (name === 'llm') return llm
+      if (name === 'agentDefaultModel') return { currentSelection: () => ({ provider: 'deepseek', model: 'deepseek-chat' }) }
+      if (name === 'workspaceRegistry') return { list: () => workspaces.map((w) => ({ ...w })), get: (id) => workspaces.filter((w) => w.id === id)[0] }
+      if (name === 'sessions') return { get: (id) => sessions[String(id)] }
+      if (name === 'sessionTitle') return { get: (s) => ({ title: '推理服务测试' }) }
+      return undefined
+    },
+  }
+  const mod2 = await loadLegacyHost()
+  await mod2.apply(ctx2)
+  ok(!!handler2, '第二个实例注册了 RPC handler')
+  const rpc2 = (method, args) => new Promise((resolve, reject) => {
+    const body = JSON.stringify({ method, args: args === undefined ? null : args })
+    const req = { method: 'POST', async *[Symbol.asyncIterator]() { yield Buffer.from(body) } }
+    const res = {
+      statusCode: 200, setHeader() {},
+      end(text) {
+        let payload = null
+        try { payload = JSON.parse(text || '{}') } catch (e) { reject(new Error('响应不是 JSON: ' + text)); return }
+        if (payload && payload.ok === true) resolve(payload.result)
+        else reject(new Error('rpc ' + method + ' 失败：' + ((payload && payload.error) || '未知')))
+      },
+    }
+    handler2(req, res)
+  })
+  const s2 = await rpc2('snapshot', null)
+  ok(s2.snapshot.settings.maxTokens === 32000, '旧库 maxTokens 8000 -> 32000（实际 ' + s2.snapshot.settings.maxTokens + '）')
+  await rpc2('saveSettings', {})
+  const persisted = JSON.parse(files2.get('.redteam-report.json'))
+  ok(Number(persisted.version) === 2 && persisted.settings.maxTokens === 32000,
+    '迁移结果按新版本落盘（version=' + persisted.version + ', maxTokens=' + persisted.settings.maxTokens + '）')
 }
 
 console.log('\n' + (fails.length === 0 ? '✓ 全部通过（' + pass + ' 项）' : '✗ 失败 ' + fails.length + ' 项：\n  - ' + fails.join('\n  - ')))

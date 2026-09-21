@@ -36,7 +36,10 @@
 
   // ── 常量 ──────────────────────────────────────────────────────────────────
   const STORE_NAME = '.redteam-report.json'
-  const STORE_VERSION = 1
+  // 2: maxTokens 默认 8000 -> 32000。
+  //    实测 8000 会让推理模型把预算吃光、正文一个字写不出来（finish = max-tokens），
+  //    旧库按版本迁移到新默认值（见 doLoad）。
+  const STORE_VERSION = 2
   const LOG_MAX = 120
   const SHELL_TIMEOUT_MS = 20000
   const DEFAULT_MATRIX_STORE = '.redteam-attack-matrix.json'
@@ -67,7 +70,9 @@
       digestMax: 48000,
       matrixStore: '',
       exportDir: '',
-      maxTokens: 8000,
+      // 推理与正文共用这个预算。实测 deepseek-flash 上 8000 会被推理吃满，
+      // 正文一个字都写不出来（usage.outputTokens 恰好等于 maxTokens）。
+      maxTokens: 32000,
     }
   }
 
@@ -176,6 +181,12 @@
       if (parsed && typeof parsed === 'object') {
         if (Number(parsed.version) !== STORE_VERSION) log('warn', '报告存储版本 ' + parsed.version + ' -> ' + STORE_VERSION + '，按字段合并')
         if (parsed.settings && typeof parsed.settings === 'object') mergeSettings(parsed.settings)
+        // 旧库的 maxTokens 停在旧默认 8000 上：直接用会让自动报告一直失败（正文被推理挤空）。
+        // 只迁移「恰好等于旧默认值」的情况 —— 用户自己设过的其他值不动。
+        if (Number(parsed.version) < STORE_VERSION && store.settings.maxTokens === 8000) {
+          store.settings.maxTokens = 32000
+          log('info', '旧版 maxTokens 8000 已迁移到 32000（推理与正文共用预算，8000 会把正文挤空）')
+        }
         if (Array.isArray(parsed.reports)) {
           for (const x of parsed.reports) {
             if (!x || typeof x !== 'object') continue
@@ -715,11 +726,28 @@
       },
       instruction: String(instruction || '').slice(0, 2000),
     })
+    report.meta.truncated = !!(finish && finish.kind === 'max-tokens')
     store.meta.evidence = report.meta.evidence
 
     if (finish && finish.kind === 'error') throw new Error('模型返回错误：' + ((finish.failure && finish.failure.message) || '未知'))
     if (finish && finish.kind === 'aborted') throw new Error('生成被中止：' + ((finish.failure && finish.failure.message) || ''))
-    if (!text.trim()) throw new Error('模型没有返回任何正文（finish = ' + (finish ? finish.kind : '?') + '）')
+    if (finish && finish.kind === 'max-tokens') {
+      log('warn', '正文被 maxTokens=' + settings().maxTokens + ' 截断（已写 ' + text.length + ' 字），报告可能不完整'
+        + (usage && usage.reasoningTokens ? '；其中推理 ' + usage.reasoningTokens + ' token' : ''))
+    }
+    if (!text.trim()) {
+      // 最常见的一种：推理模型把预算全用在 reasoning 上，正文一个字都没吐出来。
+      // 只报「没有返回任何正文」用户无从下手，这里把预算、推理用量和下一步说清楚。
+      const cap = settings().maxTokens
+      const rt = usage && Number(usage.reasoningTokens || 0)
+      const next = Math.min(64000, Math.max(cap * 2, cap + 8000))
+      const hint = finish && finish.kind === 'max-tokens'
+        ? '：推理占满了 ' + cap + ' token 的预算' + (rt ? '（其中推理 ' + rt + ' token）' : '')
+          + '，正文没写出来。'
+          + (cap < 64000 ? '把本面板的 maxTokens 调到 ' + next + ' 再试' : '已经顶到上限 64000，换一个非推理模型再试')
+        : ''
+      throw new Error('模型没有返回任何正文（finish = ' + (finish ? finish.kind : '?') + '）' + hint)
+    }
     return { chars: text.length, evidence: report.meta.evidence }
   }
 

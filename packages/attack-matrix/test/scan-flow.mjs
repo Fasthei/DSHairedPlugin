@@ -525,5 +525,41 @@ console.log('\n[对外服务] redteamAttackMatrix：报告插件要的那份数�
   ok(typeof d.storePath === 'string' && d.storePath.indexOf('.redteam-attack-matrix.json') >= 0, 'digest 带存储路径：' + d.storePath)
 }
 
+console.log('\n[13] 自反馈闸门：研判请求投递之后，该会话的模型回复不再进矩阵')
+{
+  // 事故形态：研判请求正文里带着「命中词：…」清单 -> 落进会话 -> 模型判定时复述这些词
+  // -> 下一轮扫描把**模型自己的回复**扫成新命中 -> 再造一批研判请求，队列永远排不空。
+  // 闸门按「会话 + 投递时刻」生效：收到过研判请求的会话，那之后的模型回复不再扫描。
+  await rpc('scan', { workspaceId: 'w1', reset: true })
+  sA._push(mkEvents([{ kind: 'assistant', text: '继续验证 prompt injection 的绕过手法' }]))
+  await rpc('scan', { workspaceId: 'w1' })
+  const t1 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  const a1 = (t1.operations || []).filter((o) => o.sessionId === 'session-a')[0]
+  const b1 = (t1.operations || []).filter((o) => o.sessionId === 'session-b')[0]
+  ok(!!a1, '前提：session-a 上已有 LLM01 命中（' + (a1 ? a1.occurrences : 0) + ' 次）')
+  const nA = a1 ? a1.occurrences : 0
+  const nB = b1 ? b1.occurrences : 0
+
+  // 模拟「研判请求已投递给 session-a」：把投递时刻写进存储（分界取最后一条事件之后）
+  const storeFile = WS1 + '/.redteam-attack-matrix.json'
+  ok(files.has(storeFile), 'w1 的矩阵文件存在')
+  const raw = JSON.parse(files.get(storeFile))
+  raw.triageAt = { 'session-a': timeCounter + 1 }
+  files.set(storeFile, JSON.stringify(raw))
+
+  sA._push(mkEvents([{ kind: 'assistant', text: '第 1 条判定：prompt injection 只能算疑似，命中词 prompt injection' }]))
+  await rpc('scan', { workspaceId: 'w1' })
+  const t2 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  const a2 = (t2.operations || []).filter((o) => o.sessionId === 'session-a')[0]
+  ok(a2 && a2.occurrences === nA, '投递之后的模型回复没有被扫回矩阵（' + nA + ' -> ' + (a2 ? a2.occurrences : '?') + '）')
+
+  // 对照：没收到过研判请求的会话不受影响 —— 闸门是「按会话 + 时刻」，不是全局静音
+  sB._push(mkEvents([{ kind: 'assistant', text: '这条里同样出现了 prompt injection 字样' }]))
+  await rpc('scan', { workspaceId: 'w1' })
+  const t3 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
+  const b3 = (t3.operations || []).filter((o) => o.sessionId === 'session-b')[0]
+  ok(b3 && b3.occurrences > nB, '对照：未参与研判的会话照样入矩阵（session-b ' + nB + ' -> ' + (b3 ? b3.occurrences : '?') + '）')
+}
+
 console.log('\n' + (fails.length === 0 ? '✓ 全部通过（' + pass + ' 项）' : '✗ 失败 ' + fails.length + ' 项：\n  - ' + fails.join('\n  - ')))
 process.exit(fails.length === 0 ? 0 : 1)

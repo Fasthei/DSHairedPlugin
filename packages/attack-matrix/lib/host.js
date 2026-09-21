@@ -2757,6 +2757,11 @@ function applyHost(ctx) {
       // 存在的理由很具体：开发这个插件的工作区里，对话本身就在不停命中框架关键词
       // （我写一行注释含「主机名」就造出一个 T1082 桶），噪音会盖过真实目标数据。
       ignoreSessions: [],
+      // triageAt[sessionId] = 最近一次把研判请求交给该会话的时刻。
+      // 这是自反馈的第二道闸（第一道是 isSelfPrompt 过滤研判请求本身）：那之后该会话
+      // 的**模型回复**是「判定过程」，里面必然复述研判请求的关键词（命中词清单、技术点名），
+      // 扫回来就会造出一批和原始命中一模一样的新命中，队列永远排不空。
+      triageAt: {},
       log: [],
       logSeq: 0,
       meta: { lastError: null, lastScanAt: 0, scannedSessions: 0 },
@@ -2869,6 +2874,17 @@ function applyHost(ctx) {
     return all.length > 0 ? all[0] : null
   }
 
+  // 工作区里的会话成员表。研判派发、孤儿命中过滤都以它为准。
+  // 取不到（注册表不可用、工作区不存在）时返回空数组 —— 宁可放弃这次派发，
+  // 也不要退化成「随便找个会话投过去」。
+  function memberSessionIds(workspaceId) {
+    const reg = workspaceRegistry()
+    try {
+      const w = reg && typeof reg.get === 'function' ? reg.get(String(workspaceId || '')) : null
+      return w && Array.isArray(w.sessionIds) ? w.sessionIds.map(String) : []
+    } catch (e) { return [] }
+  }
+
   function sessionsOf(workspaceId) {
     const reg = workspaceRegistry()
     const sessions = ctx.get('sessions')
@@ -2912,6 +2928,9 @@ function applyHost(ctx) {
       if (parsed.scans && typeof parsed.scans === 'object') store.scans = parsed.scans
       if (parsed.matrix && typeof parsed.matrix === 'object') store.matrix = parsed.matrix
       if (Array.isArray(parsed.ignoreSessions)) store.ignoreSessions = parsed.ignoreSessions.map(String)
+      if (parsed.triageAt && typeof parsed.triageAt === 'object') {
+        for (const k of Object.keys(parsed.triageAt)) store.triageAt[String(k)] = Number(parsed.triageAt[k]) || 0
+      }
       if (Array.isArray(parsed.log)) store.log = parsed.log.slice(-LOG_MAX)
       if (typeof parsed.logSeq === 'number') store.logSeq = parsed.logSeq
       if (parsed.meta && typeof parsed.meta === 'object') {
@@ -2940,6 +2959,7 @@ function applyHost(ctx) {
         scans: store.scans,
         matrix: store.matrix,
         ignoreSessions: store.ignoreSessions || [],
+        triageAt: store.triageAt || {},
         log: (store.log || []).slice(-LOG_MAX),
         logSeq: store.logSeq || 0,
         meta: {
@@ -2970,10 +2990,14 @@ function applyHost(ctx) {
   function isSelfTool(name) { return SELF_TOOLS.indexOf(String(name || '')) >= 0 }
   function isSelfPrompt(text) { return String(text || '').indexOf(SELF_PROMPT) >= 0 }
 
-  function activitiesOf(session) {
+  function activitiesOf(session, opts) {
     let events = []
     try { events = session.snapshotEvents() } catch (e) { return [] }
     if (!Array.isArray(events)) return []
+    // 这个会话收到过研判请求吗？收到过的话，那一刻之后的模型回复属于「判定过程」，
+    // 不能再当命中扫回来（见 blankStore 里 triageAt 的说明）。
+    const triageAt = (opts && opts.triageAt) || {}
+    const judgedFrom = Number(triageAt[String(session.id || '')]) || 0
 
     // 先收拢工具调用，好让「调用 + 结果」在结果那条上仍能看到工具名与参数。
     const calls = {}
@@ -2993,6 +3017,7 @@ function applyHost(ctx) {
         const text = textOfContent(d.content)
         if (text.trim() && !isSelfPrompt(text)) out.push({ kind: 'user', seq: seq, at: at, text: text, label: '用户消息' })
       } else if (ev.type === 'assistant/message') {
+        if (judgedFrom && at >= judgedFrom) continue
         const text = textOfContent(d.message && d.message.content)
         if (text.trim()) out.push({ kind: 'assistant', seq: seq, at: at, text: text, label: '模型回复' })
       } else if (ev.type === 'tool/call') {
@@ -3161,7 +3186,7 @@ function applyHost(ctx) {
       // 非目标会话：连水位都不碰，直接跳过。
       if ((store.ignoreSessions || []).indexOf(sid) >= 0) continue
       const title = sessionTitleOf(session)
-      const acts = activitiesOf(session)
+      const acts = activitiesOf(session, { triageAt: store.triageAt })
       if (acts.length === 0) continue
       scannedSessions++
 
@@ -3319,38 +3344,31 @@ function applyHost(ctx) {
     return L.join('\n')
   }
 
-  function findAgent() {
+  function findAgent(workspaceId) {
     const agents = ctx.get('agents')
     if (!agents) return null
+    const ids = memberSessionIds(workspaceId)
+    if (ids.length === 0) return null
+    function owned(a) { return !!a && ids.indexOf(String(a.id)) >= 0 }
     try {
       if (typeof agents.currentInitiator === 'function') {
         const a = agents.currentInitiator()
-        if (a) { rememberedAgent = a; return a }
+        if (owned(a)) { rememberedAgent = a; return a }
       }
       // 定时器回调里没有驱动链，currentInitiator() 必然是空的。这时候按
-      // 「哪个根会话属于当前工作区」来认 —— 那才是该收到研判请求的会话。
-      // 早先这里只认 roots().length === 1，多个工作区时会直接放弃，
-      // 结果就是扫描一直在跑、判定请求一条都发不出去。
+      // 「哪个根会话属于这个工作区」来认 —— 那才是该收到研判请求的会话。
       const roots = typeof agents.roots === 'function' ? agents.roots() : []
-      if (Array.isArray(roots) && roots.length) {
-        const w = currentWorkspace()
-        const reg = workspaceRegistry()
-        let ids = []
-        try {
-          const full = w && reg && typeof reg.get === 'function' ? reg.get(w.id) : null
-          ids = full && Array.isArray(full.sessionIds) ? full.sessionIds.map(String) : []
-        } catch (e) {}
-        for (const a of roots) if (a && ids.indexOf(String(a.id)) >= 0) { rememberedAgent = a; return a }
-        if (roots.length === 1) { rememberedAgent = roots[0]; return roots[0] }
+      if (Array.isArray(roots)) {
+        for (const a of roots) if (owned(a)) { rememberedAgent = a; return a }
       }
     } catch (e) {}
-    return rememberedAgent
+    // 兜底：上次投递过的那个 agent，但必须**仍然属于这个工作区**。
+    return owned(rememberedAgent) ? rememberedAgent : null
   }
 
-  async function handoffToModel(store, workspace, items) {
-    const agent = findAgent()
+  async function handoffToModel(store, workspace, items, agent) {
     if (!agent || typeof agent.followup !== 'function') {
-      logTo(store, 'warn', '找不到可唤醒的会话 Agent，' + items.length + ' 条疑似留在队列里等下次研判')
+      logTo(store, 'warn', '找不到本工作区内可唤醒的会话（不跨工作区投递），' + items.length + ' 条疑似留在队列里等下次研判')
       return false
     }
     const text = buildJudgePrompt(workspace, items)
@@ -3369,6 +3387,8 @@ function applyHost(ctx) {
         return false
       }
     }
+    // 投递成功才记时刻：这一刻之后该会话的模型回复是判定过程，不再当命中扫描。
+    store.triageAt[String(agent.id)] = nowMs()
     return true
   }
 
@@ -3407,7 +3427,17 @@ function applyHost(ctx) {
     try {
       await withStore(async function () {
         const store = await readStore(w.path)
-        const all = pendingItems(store)
+        // 孤儿命中（所属会话已经不在这个工作区里）不参与自动派发：
+        // 它们既没有收件人，也说明数据是从别处带过来的 —— 早先这种条目会被
+        // 投给工作区里任何一个活着的会话，表现就是「研判串台」。
+        // 它们仍然留在面板上，可以人工判定或忽略。
+        const memberIds = memberSessionIds(w.id)
+        const pending = pendingItems(store)
+        const all = pending.filter(function (x) { return memberIds.indexOf(String(x.sessionId)) >= 0 })
+        const orphans = pending.length - all.length
+        if (orphans > 0) {
+          logTo(store, 'warn', '跳过 ' + orphans + ' 条孤儿命中（所属会话已不在本工作区，不自动派发；可在面板人工判定）')
+        }
         const now0 = nowMs()
         const fresh = all.filter(function (x) { return isFresh(x, now0) })
         if (fresh.length === 0) return
@@ -3415,6 +3445,14 @@ function applyHost(ctx) {
         const oldest = fresh[0] || null
         const stale = oldest && oldest.firstAt && (nowMs() - oldest.firstAt > JUDGE_STALE_MS)
         if (fresh.length < JUDGE_MIN && !stale) return
+        // 收件人必须属于本工作区：认不出来就整批不派发（下一轮再试），
+        // 而不是退回「随便找个会话投过去」。
+        const agent = findAgent(w.id)
+        if (!agent) {
+          logTo(store, 'warn', '本工作区没有可唤醒的会话（不跨工作区投递），' + fresh.length + ' 条疑似暂不派发')
+          if (orphans > 0) { store.updatedAt = nowMs(); await writeStore(store) }
+          return
+        }
         const batch = fresh.slice(0, JUDGE_BATCH)
         for (const it of batch) {
           const h = ((store.matrix[it.frameworkId] || {})[it.techniqueId] || {})[it.sessionId]
@@ -3424,7 +3462,7 @@ function applyHost(ctx) {
         store.updatedAt = nowMs()
         await writeStore(store)
         // 先把「已送出」落盘再唤醒模型：反过来的话，模型可能在被标记之前就开始判定。
-        const ok = await handoffToModel(store, w, batch)
+        const ok = await handoffToModel(store, w, batch, agent)
         lastHandoffAt = nowMs()
         if (!ok) {
           // 没送出去就别把它们标成已送出，否则会永远卡在队列里。
@@ -3432,6 +3470,10 @@ function applyHost(ctx) {
             const h = ((store.matrix[it.frameworkId] || {})[it.techniqueId] || {})[it.sessionId]
             if (h && h.confidence !== 'confirmed') h.sentAt = 0
           }
+          await writeStore(store)
+        } else {
+          // 投递成功：把 triageAt 落盘（handoffToModel 里写入），
+          // 否则重启后这道自反馈闸门就失效了。
           await writeStore(store)
         }
       })
