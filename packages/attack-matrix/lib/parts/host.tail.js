@@ -33,5 +33,10 @@
 
 export const name = '__PLUGIN_NAME__'
 // 三个工具注册进宿主 tools 注册表；这里声明本半边硬依赖的服务。
-export const inject = ['fs', 'shell', 'timer', 'webServer']
+// `tools` 必须在列：静态形态下 apply 拿到的是真实 Cordis ctx，**没 inject 的服务
+// 不能当属性读**（ctx.tools 会是 undefined），于是 registerTool 抛
+// 「Cannot read properties of undefined」并被主体里的 try/catch 吞掉 ——
+// 表现就是「扫描在跑、面板正常，但 matrix_label 从来不存在」。
+// 另外三个包（asset-graph / memory / report）都声明了它，只有这里漏了。
+export const inject = ['tools', 'fs', 'shell', 'timer', 'webServer']
 export { applyHost as apply }

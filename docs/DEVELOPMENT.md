@@ -36,6 +36,29 @@ DSH 插件可以有两种活法，同一个插件通常两样都要：
 > （`window.__ModuleLoader__.load({id, factory})`），一切副作用留在闭包内，首次
 > `require` 时物化。所以入口文件必须写成这个形态。
 
+### 2.1 `inject` 漏了服务 = 运行时静默失效（实测）
+
+静态半边的 `inject` 是**硬依赖声明**，不是装饰。真实 Cordis ctx 下**没 inject 的服务不能
+当属性读**：`ctx.tools` 会是 `undefined`，`ctx.tools.register(tool)` 抛
+`TypeError: Cannot read properties of undefined (reading 'register')`。
+
+攻击矩阵就栽在这里：`lib/parts/host.tail.js` 的 inject 只写了
+`['fs','shell','timer','webServer']`，漏了 `tools`，而主体又把这个抛错包在 `try/catch` 里
+（本意是「注册失败也要可见」）—— 结果**面板、自动扫描、自动研判照跑，只有 `matrix_label`
+从来不存在**，自动研判永远停在「已送出、无人下结论」。另外三个包都声明了 `tools`，只有它坏。
+
+三条教训：
+
+- 新增「注册工具 / 开路由 / 提供 Service」这类副作用时，回头核对 `inject` 是否齐全 ——
+  四个包 tail 里的这一行值得互相对照。
+- 这类失效**很容易被掩盖**：开发期同时挂着动态装载器的版本（动态半边的 ctx 由 runner
+  供给 `tools`），一切正常；DSH 一重启、动态插件清空，只剩常驻包时才暴露。
+  「动态形态跑得通」不能当作常驻包没问题的证据。
+- 副作用失败要落在**用户看得见的地方**。只 `console.error` 到启动它的终端等于没报：
+  这台机器上 dsh web 的输出在 `/dev/pts/4`，事后无从查起。所以失败分支也写一条
+  面板日志，且**不要依赖 `currentWorkspace()`**（启动早期它可能解析不出来，于是
+  静默 return，日志里什么都看不到 —— 这次就撞上了）。
+
 ## 3. 组合 patch 的语义（`cordis.patch.yml`）
 
 patch 条目是 `@deepseek-ai/cordis-plugin-include` 的 **`PatchOptions`**，不是「直接放一行」：
@@ -143,7 +166,7 @@ for p in asset-graph attack-matrix; do
   mkdir -p "packages/$p/node_modules/@deepseek-ai"
   ln -sfn "$DSH_NM/dsh-tools" "packages/$p/node_modules/@deepseek-ai/dsh-tools"
 done
-npm test        # 资产图谱 15 + 攻击矩阵 host 101 / client 90
+npm test        # 资产图谱 15 + 攻击矩阵 host 108 / client 90
 ```
 
 `node_modules/` 在 `.gitignore` 里，软链不进仓库。客户端侧的冒烟测试不需要这个依赖，

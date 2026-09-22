@@ -2989,6 +2989,14 @@ function applyHost(ctx) {
   const SELF_PROMPT = '【攻击矩阵 · 自动研判】'
   function isSelfTool(name) { return SELF_TOOLS.indexOf(String(name || '')) >= 0 }
   function isSelfPrompt(text) { return String(text || '').indexOf(SELF_PROMPT) >= 0 }
+  // 宿主注入的样板文本：技能目录（<available_skills>）与运行时上下文（<system-reminder>）。
+  // 每个会话都带一份，而目录里天然写满红队术语（「数据投毒」「成员推断」「拒绝服务」
+  // 「mcp server」「向量库」…）—— 扫进来会一次性造出十几个桶的「命中」，
+  // 实测一次贡献 8 个桶，且和任何目标动作都无关。
+  function isHarnessBoilerplate(text) {
+    const s = String(text || '')
+    return s.indexOf('<available_skills>') >= 0 || s.indexOf('<system-reminder>') >= 0
+  }
 
   function activitiesOf(session, opts) {
     let events = []
@@ -3015,11 +3023,11 @@ function applyHost(ctx) {
       const d = ev.data
       if (ev.type === 'user/message') {
         const text = textOfContent(d.content)
-        if (text.trim() && !isSelfPrompt(text)) out.push({ kind: 'user', seq: seq, at: at, text: text, label: '用户消息' })
+        if (text.trim() && !isSelfPrompt(text) && !isHarnessBoilerplate(text)) out.push({ kind: 'user', seq: seq, at: at, text: text, label: '用户消息' })
       } else if (ev.type === 'assistant/message') {
         if (judgedFrom && at >= judgedFrom) continue
         const text = textOfContent(d.message && d.message.content)
-        if (text.trim()) out.push({ kind: 'assistant', seq: seq, at: at, text: text, label: '模型回复' })
+        if (text.trim() && !isHarnessBoilerplate(text)) out.push({ kind: 'assistant', seq: seq, at: at, text: text, label: '模型回复' })
       } else if (ev.type === 'tool/call') {
         if (isSelfTool(d.name)) continue
         out.push({ kind: 'tool', seq: seq, at: at, text: String(d.name || '') + ' ' + String(d.arguments || ''), label: '工具调用 ' + String(d.name || '') })
@@ -3552,7 +3560,10 @@ function applyHost(ctx) {
     harness.registerTool(ctx, labelTool)
     Promise.resolve().then(function () {
       return withStore(async function () {
-        const w = currentWorkspace()
+        // 启动早期 currentWorkspace() 可能还解析不出来（没有 initiator、注册表刚起），
+        // 退到第一个工作区也要把这条落盘 —— 否则「注册成功 / 失败」在面板上完全不可见，
+        // 而这条链路（研判）恰恰是靠日志排查的。
+        const w = currentWorkspace() || listWorkspaces()[0] || null
         if (!w) return
         const store = await readStore(w.path)
         logTo(store, 'info', '已注册模型工具 matrix_label（自动研判用）')
@@ -3561,13 +3572,17 @@ function applyHost(ctx) {
       })
     }).catch(function () {})
   } catch (e) {
-    console.error('[rtmatrix] matrix_label 注册失败: ' + msgOf(e))
+    const raw = msgOf(e)
+    // 实测最常见的一种：ctx.tools 不可用（静态形态下没把 tools 写进 inject）。
+    // 报「Cannot read properties of undefined」时把这条结论直接写出来，省得再查一遍。
+    const hint = /undefined/.test(raw) ? '（ctx.tools 不可用：静态形态下 tools 必须写进 inject）' : ''
+    console.error('[rtmatrix] matrix_label 注册失败: ' + raw + hint)
     Promise.resolve().then(function () {
       return withStore(async function () {
-        const w = currentWorkspace()
+        const w = currentWorkspace() || listWorkspaces()[0] || null
         if (!w) return
         const store = await readStore(w.path)
-        logTo(store, 'err', 'matrix_label 注册失败：' + msgOf(e))
+        logTo(store, 'err', 'matrix_label 注册失败：' + raw + hint)
         await writeStore(store)
       })
     }).catch(function () {})
@@ -4035,5 +4050,10 @@ function applyHost(ctx) {
 
 export const name = 'redteam-attack-matrix'
 // 三个工具注册进宿主 tools 注册表；这里声明本半边硬依赖的服务。
-export const inject = ['fs', 'shell', 'timer', 'webServer']
+// `tools` 必须在列：静态形态下 apply 拿到的是真实 Cordis ctx，**没 inject 的服务
+// 不能当属性读**（ctx.tools 会是 undefined），于是 registerTool 抛
+// 「Cannot read properties of undefined」并被主体里的 try/catch 吞掉 ——
+// 表现就是「扫描在跑、面板正常，但 matrix_label 从来不存在」。
+// 另外三个包（asset-graph / memory / report）都声明了它，只有这里漏了。
+export const inject = ['tools', 'fs', 'shell', 'timer', 'webServer']
 export { applyHost as apply }

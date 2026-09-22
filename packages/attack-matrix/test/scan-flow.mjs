@@ -129,11 +129,15 @@ const { fs: fsService, files } = fakeFs()
 const registeredRoutes = []
 const handlers = {}
 const services = {}
+// 记录工具注册：静态形态下 apply 会往宿主 tools 注册表塞 matrix_label。
+// 早先这个桩是空实现，于是「注册失败被主体 try/catch 吞掉」这类事故在测试里看不见 ——
+// 生产上的表现就是面板与扫描都正常、但 matrix_label 从来不存在。
+const registeredTools = []
 const ctx = {
   fs: fsService,
   shell: {},
   timer: {},
-  tools: { register: () => () => {} },
+  tools: { register: (t) => { registeredTools.push(t); return () => {} } },
   webServer: {
     register: (route) => {
       registeredRoutes.push(route)
@@ -159,6 +163,25 @@ const ctx = {
 mod.apply(ctx)
 ok(registeredRoutes.length === 1, '注册了 1 条 RPC 路由：' + registeredRoutes.map((r) => r.path).join(','))
 ok(!!handlers.rpc, '捕获到 RPC handler')
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n[0] 静态半边的依赖声明与工具注册（回归线）')
+{
+  // 事故形态：静态半边的 inject 漏了 tools —— 真实 Cordis ctx 下没 inject 的服务不能
+  // 当属性读，ctx.tools 是 undefined，registerTool 抛
+  // "Cannot read properties of undefined (reading 'register')"，又被主体的 try/catch
+  // 吞掉：面板、自动扫描、自动研判照跑，只有 matrix_label 从来不存在，表现为
+  // 「扫描在跑但永远没人下结论」。另外三个包（asset-graph / memory / report）都声明了 tools。
+  const inj = Array.isArray(mod.inject) ? mod.inject : []
+  ok(inj.indexOf('tools') >= 0, 'inject 声明了 tools：' + JSON.stringify(inj))
+  ok(inj.indexOf('fs') >= 0 && inj.indexOf('timer') >= 0 && inj.indexOf('webServer') >= 0,
+    'fs / timer / webServer 也都在：' + JSON.stringify(inj))
+  const names = registeredTools.map((t) => t && t.name)
+  ok(names.indexOf('matrix_label') >= 0, 'apply 时注册了 matrix_label：' + JSON.stringify(names))
+  const tool = registeredTools.filter((t) => t && t.name === 'matrix_label')[0]
+  ok(!!tool && typeof tool.execute === 'function', 'matrix_label 带 execute')
+  ok(!!tool && !!tool.output && typeof tool.output.render === 'function', 'matrix_label 带 output.render（注册表会校验这一项）')
+}
 
 // 与 lib/parts/client.shim.js 的 host.call 保持同一口径：剥掉 {ok, result} 外层，
 // 失败时抛错。测试若在这里「多拿一层」，就会像当初那样断言到错的层级上。
@@ -559,6 +582,32 @@ console.log('\n[13] 自反馈闸门：研判请求投递之后，该会话的模
   const t3 = await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' })
   const b3 = (t3.operations || []).filter((o) => o.sessionId === 'session-b')[0]
   ok(b3 && b3.occurrences > nB, '对照：未参与研判的会话照样入矩阵（session-b ' + nB + ' -> ' + (b3 ? b3.occurrences : '?') + '）')
+}
+
+console.log('\n[14] 宿主样板文本（技能目录 / system-reminder）不进矩阵')
+{
+  // 事故形态：宿主每个会话都注入一份技能目录（<available_skills>）与运行时上下文
+  // （<system-reminder>），目录里写满红队术语。扫进来会一次性造出十几个桶的「命中」，
+  // 实测一次贡献 8 个桶，全部与会话里的实际动作无关。
+  await rpc('scan', { workspaceId: 'w1', reset: true })
+  const of = (d) => ((d.operations || []).filter((o) => o.sessionId === 'session-b')[0] || {}).occurrences || 0
+  const n0 = of(await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' }))
+
+  sB._push(mkEvents([{
+    kind: 'user',
+    text: '<system-reminder> A skill is a reusable set of task-specific instructions. '
+      + 'The following skills are available in this session: <available_skills> - `attack-rag-pipelines`: '
+      + '攻击 RAG 管道——数据投毒/检索劫持；- `attack-mcp`: MCP server 工具面枚举 </available_skills></system-reminder>',
+  }]))
+  await rpc('scan', { workspaceId: 'w1' })
+  const n1 = of(await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' }))
+  ok(n1 === n0, '技能目录 / system-reminder 没被扫成命中（' + n0 + ' -> ' + n1 + '）')
+
+  // 对照：同一会话里普通用户消息照常命中（不是把这个会话整体静音了）
+  sB._push(mkEvents([{ kind: 'user', text: '这次真的试一下 prompt injection 绕过' }]))
+  await rpc('scan', { workspaceId: 'w1' })
+  const n2 = of(await rpc('technique', { workspaceId: 'w1', frameworkId: 'owasp-llm', techniqueId: 'LLM01' }))
+  ok(n2 > n1, '对照：普通用户消息照常命中（' + n1 + ' -> ' + n2 + '）')
 }
 
 console.log('\n' + (fails.length === 0 ? '✓ 全部通过（' + pass + ' 项）' : '✗ 失败 ' + fails.length + ' 项：\n  - ' + fails.join('\n  - ')))

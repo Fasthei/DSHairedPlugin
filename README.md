@@ -29,7 +29,7 @@
 | 插件 | 包名 | 仓库版本 | 用途 | 状态 |
 |---|---|---|---|---|
 | [资产图谱](packages/asset-graph/) | `dsh-redteam-asset-graph` | `7.9.7` | 目标资产自动收集、关联、可视化，模型参与研判 | ✅ 已发布 |
-| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.2.1` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
+| [攻击矩阵](packages/attack-matrix/) | `dsh-redteam-attack-matrix` | `1.2.2` | 扫工作区对话映射到 ATLAS / ATT&CK / OWASP LLM / NVIDIA AI Kill Chain，标出已覆盖与缺口 | ✅ 已发布 |
 | [记忆](packages/memory/) | `dsh-redteam-memory` | `0.4.2` | 给模型一个可检索的 AI 安全知识库（本地库为准 + Milvus 索引 + 对话捕获「写入记忆」；配置在「设置 → 红队设置」，导入只认 pdf / word / md / txt） | ✅ 已发布 |
 | [报告](packages/report/) | `dsh-redteam-report` | `0.2.3` | 报告随工作区隔离，切换时自动采集文件与会话并 AI 撰写；可编辑预览、导出 Word、导入记忆 | ✅ 已发布 |
 
@@ -72,7 +72,7 @@ dsh plugin --profile web add dsh-redteam-report@0.2.3
     │   ├── cordis.patch.yml     bundle patch
     │   ├── README.md            使用者文档
     │   └── DEVELOPMENT.md       该插件的开发笔记
-    ├── attack-matrix/           攻击矩阵（1.2.1）—— 结构与上同
+    ├── attack-matrix/           攻击矩阵（1.2.2）—— 结构与上同
     ├── memory/                  红队记忆（本地库 + Milvus 索引 + 对话捕获；提供统一红队设置页）
     └── report/                  红队报告（按工作区隔离 + 自动生成 + 导出 Word + 导入记忆，含自实现 docx 写出）
 ```
@@ -102,7 +102,7 @@ for p in asset-graph attack-matrix memory report; do
 done
 npm test
 # 现在能看到真实项数：
-#   资产图谱 15 · 攻击矩阵 host 101 / client 90 · 记忆 host 176 / client 123
+#   资产图谱 15 · 攻击矩阵 host 108 / client 90 · 记忆 host 176 / client 123
 #   报告 docx 122 / host 112（legacy） / client 78（legacy）
 #   报告新增：工作区证据 168 · 工作区调度 44 · 正式产物门禁 67
 ```
@@ -159,6 +159,22 @@ tar -xzOf build/<包名>-<版本>.tgz \
 ```
 
 ## 变更记录
+
+### 攻击矩阵 `1.2.2`（2026-09-22）
+
+- **`matrix_label` 在常驻形态下从来没注册上**。静态半边的 `inject` 漏了 `tools`（另外三个包都声明了），
+  真实 Cordis ctx 下**没声明为依赖的服务不能当属性读**，`ctx.tools` 是 `undefined`，
+  `registerTool` 抛错又被主体里的 `try/catch` 吞掉 —— 面板、自动扫描、自动研判全都照跑，
+  只有那个工具不存在，自动研判于是永远停在「已送出、无人下结论」。
+  之所以一直没暴露：开发期同时挂着**动态装载器**的版本（动态半边的 ctx 由 runner 提供 `tools`），
+  DSH 一重启动态插件清空，问题才浮出来。现在 `tools` 已写进 `inject`；注册失败也会强制落一条
+  面板日志（此前启动早期 `currentWorkspace()` 解析不出来会静默 return，日志里什么都看不到）。
+- **技能目录不再被扫成命中**。宿主给每个会话注入的技能目录（`<available_skills>`）与运行时上下文
+  （`<system-reminder>`）里写满红队术语（数据投毒、成员推断、拒绝服务、MCP server、向量库…），
+  扫进来会**一次性造出十几个桶的假命中**（实测一次 8 个桶），且与会话里的实际动作无关。
+  现在这类样板文本整段跳过，同一会话里的普通消息不受影响。
+- 回归线：host 101 → 108（`inject` 必须声明 `tools`、`apply` 必须真的注册出 `matrix_label`、
+  样板文本不进矩阵 + 普通消息照常命中的对照组）。
 
 ### 攻击矩阵 `1.2.1` · 记忆 `0.4.2` · 报告 `0.2.3`（2026-09-21）
 
